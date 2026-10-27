@@ -26,6 +26,7 @@ import com.nbradbury.snaptosite.site.SiteDiff
 import com.nbradbury.snaptosite.site.SiteLook
 import com.nbradbury.snaptosite.wp.AppPasswordAuth
 import com.nbradbury.snaptosite.wp.WpSite
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -131,6 +132,7 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
     val state: StateFlow<UiState> = _state
 
     private var snackJob: Job? = null
+    private var buildJob: Job? = null
     private var factsJob: Job? = null
 
     init {
@@ -223,7 +225,13 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
         retryAfterKey?.also { retryAfterKey = null }?.invoke()
     }
 
-    fun back() = _state.update {
+    fun back() {
+        // Leaving the build screen abandons the build; its result would overwrite nothing useful.
+        if (_state.value.screen == Screen.BUILDING) buildJob?.cancel()
+        _state.update { backFrom(it) }
+    }
+
+    private fun backFrom(it: UiState): UiState =
         when (it.screen) {
             Screen.DESCRIBE -> {
                 voice.cancel()
@@ -233,10 +241,10 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
                 it.shooting && !it.captureForEdit -> it.copy(shooting = false)
                 else -> it.copy(screen = if (it.captureForEdit) Screen.APP else Screen.DESCRIBE, shooting = false, detect = null)
             }
-            Screen.REVIEW -> if (it.buildDone) it.copy(screen = Screen.BUILDING) else it
+            // Back to the photos, where the owner can change them and build again.
+            Screen.REVIEW, Screen.BUILDING -> it.copy(screen = Screen.CAPTURE, captureForEdit = false, shooting = false, detect = null)
             else -> it
         }
-    }
 
     // Describe
 
@@ -417,7 +425,8 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
         }
         _state.update { it.copy(screen = Screen.BUILDING, steps = steps, buildDone = false, buildError = null, colors = colors) }
 
-        viewModelScope.launch {
+        buildJob?.cancel()
+        buildJob = viewModelScope.launch {
             // One Claude call does all the cloud steps; move the spinner along while it runs, but
             // never past the last step before the result is in.
             val ticker = launch {
@@ -457,6 +466,9 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
                         steps = st.steps.map { step -> finishStep(step, site) },
                     )
                 }
+            } catch (e: CancellationException) {
+                ticker.cancel()
+                throw e
             } catch (e: Exception) {
                 ticker.cancel()
                 _state.update { st ->

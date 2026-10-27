@@ -32,7 +32,7 @@ fun SnapApp(viewModel: SnapViewModel) {
     val dark = state.screen == Screen.CAPTURE
 
     BackHandler(enabled = state.sheet != null) { viewModel.closeSheet() }
-    BackHandler(enabled = state.sheet == null && state.screen in setOf(Screen.DESCRIBE, Screen.CAPTURE, Screen.REVIEW)) { viewModel.back() }
+    BackHandler(enabled = state.sheet == null && state.screen in setOf(Screen.DESCRIBE, Screen.CAPTURE, Screen.BUILDING, Screen.REVIEW)) { viewModel.back() }
 
     Box(
         Modifier
