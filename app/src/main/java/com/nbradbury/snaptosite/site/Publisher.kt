@@ -68,8 +68,8 @@ object SiteLook {
         .associate { it.index to it.value }
 
     /**
-     * Puts the owner's latest storefront photo at the top of Home and their showroom photo in the
-     * intro, plus a logo saved by an earlier version, if any, in the header.
+     * Puts the owner's latest storefront photo at the top of Home, their showroom photo in the
+     * intro, and their logo in the header.
      */
     fun withTaggedPhotos(site: SiteModel, photos: List<Photo>): SiteModel {
         fun latest(kind: PhotoKind) = photos.indexOfLast { it.kind == kind }.takeIf { it >= 0 }

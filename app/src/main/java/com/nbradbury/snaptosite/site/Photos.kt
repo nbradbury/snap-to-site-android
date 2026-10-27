@@ -6,7 +6,7 @@ import android.graphics.ImageDecoder
 import java.io.File
 
 /**
- * What the owner said a photo shows, from the tile they took it for. Photo files are named by
+ * What the owner said a photo shows, from the kind they took it for. Photo files are named by
  * these names, so renaming one would orphan saved photos.
  */
 enum class PhotoKind(val label: String) {
@@ -14,14 +14,12 @@ enum class PhotoKind(val label: String) {
     MENU("menu"),
     SHOWROOM("showroom"),
     FLYER("event flyer or poster"),
-
-    /** No longer offered, but kept so logo photos saved by earlier versions still load. */
     LOGO("logo"),
     ;
 
     companion object {
-        /** The kinds the capture screen offers, in tile order. */
-        val TILES = listOf(STOREFRONT, MENU, SHOWROOM, FLYER)
+        /** The kinds the capture screen offers, in pill order. */
+        val OFFERED = listOf(STOREFRONT, MENU, SHOWROOM, FLYER, LOGO)
     }
 }
 

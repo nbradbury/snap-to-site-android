@@ -68,7 +68,7 @@ fun ShellScreen(state: UiState, viewModel: SnapViewModel) {
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                SiteInitial(site, state.colors, 40.dp)
+                SiteBadge(site, state.photos, state.colors, 40.dp)
                 Column(Modifier.weight(1f)) {
                     Text(site.businessName, style = Type.Title.copy(fontSize = Type.Title.fontSize * 0.91f), color = Snap.OnSurface, maxLines = 1)
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {

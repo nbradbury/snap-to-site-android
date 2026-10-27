@@ -334,10 +334,13 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
 
     // Capture
 
-    /** Opens the camera for one of the capture screen's tiles. */
+    /** Shows one kind of photo on the capture screen. */
+    fun selectKind(kind: PhotoKind) = _state.update { it.copy(captureMode = kind) }
+
+    /** Opens the camera for one kind of photo. */
     fun takePhoto(kind: PhotoKind) = _state.update { it.copy(captureMode = kind, shooting = true) }
 
-    /** Sets which tile a photo from the picker is for; the UI then opens the picker. */
+    /** Sets which kind a photo from the picker is for; the UI then opens the picker. */
     fun choosePhoto(kind: PhotoKind) = _state.update { it.copy(captureMode = kind) }
 
     fun openSnap() = _state.update {

@@ -16,6 +16,8 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -101,13 +103,13 @@ private val PhotoKind.use
         PhotoKind.MENU -> "We'll read it when we build"
         PhotoKind.SHOWROOM -> "Shown on your Home page"
         PhotoKind.FLYER -> "We'll turn it into an event"
-        PhotoKind.LOGO -> "Your site's colors"
+        PhotoKind.LOGO -> "Your site's colors and header"
     }
 
 /**
- * Step 2: a tile for each kind of photo, showing a placeholder or the chosen photo, with buttons
- * to take or choose one. Taking a photo opens the camera for that tile. After launch, snapping a
- * flyer from the Site tab goes straight to the camera.
+ * Step 2: one kind of photo at a time, picked with pills, showing a placeholder or the chosen
+ * photo with buttons to take or choose one. Taking a photo opens the camera for that kind. After
+ * launch, snapping a flyer from the Site tab goes straight to the camera.
  */
 @Composable
 fun CaptureScreen(state: UiState, viewModel: SnapViewModel) {
@@ -121,13 +123,16 @@ fun CaptureScreen(state: UiState, viewModel: SnapViewModel) {
     if (state.shooting) {
         Camera(state, viewModel) { choose(state.captureMode) }
     } else {
-        Tiles(state, viewModel, choose)
+        Picker(state, viewModel, choose)
     }
 }
 
 @Composable
-private fun Tiles(state: UiState, viewModel: SnapViewModel, choose: (PhotoKind) -> Unit) {
-    val byKind = state.photos.filter { it.kind in PhotoKind.TILES }.associateBy { it.kind }
+private fun Picker(state: UiState, viewModel: SnapViewModel, choose: (PhotoKind) -> Unit) {
+    val byKind = state.photos.filter { it.kind in PhotoKind.OFFERED }.associateBy { it.kind }
+    val kind = state.captureMode.takeIf { it in PhotoKind.OFFERED } ?: PhotoKind.OFFERED.first()
+    // Site colors come from the logo, or the storefront when there's no logo.
+    val colorSource = if (PhotoKind.LOGO in byKind) PhotoKind.LOGO else PhotoKind.STOREFRONT
     Column(Modifier.fillMaxSize().background(Snap.CameraBackground)) {
         Row(
             Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(start = 4.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
@@ -137,7 +142,7 @@ private fun Tiles(state: UiState, viewModel: SnapViewModel, choose: (PhotoKind) 
             CircleIconButton("close", viewModel::back, tint = Snap.OnCamera)
             Column(Modifier.weight(1f)) {
                 Text("Show us your place", style = Type.TitleMedium, color = Snap.OnCamera)
-                Text("Step 2 of 3 · ${byKind.size} of 4 photos", style = Type.Caption, color = Snap.OnCameraVariant)
+                Text("Step 2 of 3 · ${byKind.size} of ${PhotoKind.OFFERED.size} photos", style = Type.Caption, color = Snap.OnCameraVariant)
             }
             val ready = byKind.isNotEmpty()
             Surface(
@@ -147,29 +152,46 @@ private fun Tiles(state: UiState, viewModel: SnapViewModel, choose: (PhotoKind) 
                 contentColor = if (ready) Snap.OnPrimaryContainer else Snap.OnCamera.copy(alpha = 0.38f),
             ) { Text("Done", style = Type.Label, modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) }
         }
-        Column(
-            Modifier.weight(1f).padding(start = 12.dp, end = 12.dp, bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+        Row(
+            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            PhotoKind.TILES.chunked(2).forEach { row ->
-                Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    row.forEach { kind ->
-                        Tile(
-                            kind = kind,
-                            photo = byKind[kind],
-                            // Site colors come from the storefront photo.
-                            swatches = state.colors.swatches.takeIf { kind == PhotoKind.STOREFRONT },
-                            onTake = { viewModel.takePhoto(kind) },
-                            onChoose = { choose(kind) },
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                        )
-                    }
-                }
+            PhotoKind.OFFERED.forEach { k ->
+                KindPill(k, selected = k == kind, done = k in byKind) { viewModel.selectKind(k) }
             }
+        }
+        Tile(
+            kind = kind,
+            photo = byKind[kind],
+            swatches = state.colors.swatches.takeIf { kind == colorSource },
+            onTake = { viewModel.takePhoto(kind) },
+            onChoose = { choose(kind) },
+            modifier = Modifier.weight(1f).fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 16.dp),
+        )
+    }
+}
+
+@Composable
+private fun KindPill(kind: PhotoKind, selected: Boolean, done: Boolean, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(8.dp),
+        color = if (selected) Snap.PrimaryContainer else Color.Transparent,
+        contentColor = if (selected) Snap.OnPrimaryContainer else Snap.OnCamera,
+        border = BorderStroke(1.dp, if (selected) Snap.PrimaryContainer else Snap.CameraChipBorder),
+    ) {
+        Row(
+            Modifier.heightIn(min = 32.dp).padding(start = 8.dp, end = 12.dp, top = 4.dp, bottom = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Symbol(if (done) "check_circle" else kind.icon, size = 18.dp, fill = done)
+            Text(kind.title, style = Type.Label)
         }
     }
 }
 
+/** One kind's photo, or a placeholder saying what to photograph, with take and choose buttons. */
 @Composable
 private fun Tile(
     kind: PhotoKind,
@@ -179,50 +201,48 @@ private fun Tile(
     onChoose: () -> Unit,
     modifier: Modifier,
 ) {
-    Box(modifier.clip(RoundedCornerShape(20.dp)).background(Color(0xFF1C1C22))) {
+    Box(modifier.clip(RoundedCornerShape(24.dp)).background(Color(0xFF1C1C22))) {
         val bitmap = remember(photo?.file?.path, photo?.file?.lastModified()) {
-            photo?.let { BitmapFactory.decodeFile(it.file.path, BitmapFactory.Options().apply { inSampleSize = 4 })?.asImageBitmap() }
+            photo?.let { BitmapFactory.decodeFile(it.file.path, BitmapFactory.Options().apply { inSampleSize = 2 })?.asImageBitmap() }
         }
         if (bitmap != null) {
-            Image(bitmap, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            // Fit, so a whole menu or flyer stays visible.
+            Image(bitmap, null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
             // Keeps the label and buttons readable over any photo.
             Box(
                 Modifier.fillMaxSize().background(
-                    Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.55f), 0.35f to Color.Transparent, 0.6f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.7f)),
+                    Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.55f), 0.25f to Color.Transparent, 0.75f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.7f)),
                 ),
             )
         } else {
             Column(
-                Modifier.fillMaxSize().padding(start = 14.dp, end = 14.dp, bottom = 96.dp),
+                Modifier.fillMaxSize().padding(start = 24.dp, end = 24.dp, bottom = 72.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
             ) {
-                Symbol(kind.icon, size = 36.dp, tint = Snap.CameraChipBorder)
+                Symbol(kind.icon, size = 48.dp, tint = Snap.CameraChipBorder)
                 Text(
                     kind.hint,
-                    style = TextStyle(fontSize = 13.sp, lineHeight = 18.sp),
+                    style = Type.BodyMedium,
                     color = Snap.OnCameraVariant,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 8.dp),
+                    modifier = Modifier.padding(top = 12.dp),
                 )
             }
         }
-        Column(Modifier.align(Alignment.TopStart).padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                Symbol(if (photo != null) "check_circle" else kind.icon, size = 18.dp, fill = photo != null, tint = Color.White)
-                Text(kind.title, style = Type.Label, color = Color.White)
-            }
-            if (photo != null) {
-                Text(kind.use, style = Type.Caption, color = Color.White.copy(alpha = 0.85f))
+        if (photo != null) {
+            Column(Modifier.align(Alignment.TopStart).padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(kind.use, style = Type.Label, color = Color.White)
                 swatches?.let { Swatches(it) }
             }
         }
-        Column(
-            Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+        Row(
+            Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            TileButton("photo_camera", "Take photo", primary = true, onClick = onTake)
-            TileButton("photo_library", "Choose photo", primary = false, onClick = onChoose)
+            Box(Modifier.weight(1f)) { TileButton("photo_camera", "Take photo", primary = true, onClick = onTake) }
+            Box(Modifier.weight(1f)) { TileButton("photo_library", "Choose photo", primary = false, onClick = onChoose) }
         }
     }
 }

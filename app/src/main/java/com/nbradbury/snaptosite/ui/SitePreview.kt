@@ -48,6 +48,7 @@ import com.nbradbury.snaptosite.site.PageKey
 import com.nbradbury.snaptosite.site.Photo
 import com.nbradbury.snaptosite.site.Section
 import com.nbradbury.snaptosite.site.SiteColors
+import com.nbradbury.snaptosite.site.SiteLook
 import java.net.URLEncoder
 
 private val Ink = Color(0xFF1F2A24)
@@ -95,7 +96,7 @@ fun SitePreview(state: UiState, site: SiteModel, onPage: (PageKey) -> Unit, modi
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Initial(site.businessName, look, 30.dp)
+                Badge(site, state.photos, look, 30.dp)
                 Text(site.businessName, style = TextStyle(fontFamily = Newsreader, fontWeight = FontWeight.Medium, fontSize = 19.sp), color = Ink, modifier = Modifier.weight(1f))
                 Symbol("menu", size = 22.dp, tint = look.primary)
             }
@@ -292,15 +293,24 @@ private fun PhotoBox(photo: Photo, modifier: Modifier) {
     }
 }
 
-/** The site's initial in a circle, standing in for its logo in the app and preview. */
+/** The site's logo in a circle, or its initial when there's no logo, in the app and preview. */
 @Composable
-fun SiteInitial(site: SiteModel, colors: SiteColors, size: androidx.compose.ui.unit.Dp) = Initial(site.businessName, Look(colors), size)
+fun SiteBadge(site: SiteModel, photos: List<Photo>, colors: SiteColors, size: androidx.compose.ui.unit.Dp) =
+    Badge(site, photos, Look(colors), size)
 
 @Composable
-private fun Initial(name: String, look: Look, size: androidx.compose.ui.unit.Dp) {
+private fun Badge(site: SiteModel, photos: List<Photo>, look: Look, size: androidx.compose.ui.unit.Dp) {
+    val logo = SiteLook.logoIndex(site, photos)?.let { photos.getOrNull(it) }
+    val bitmap = remember(logo?.file?.path, logo?.file?.lastModified()) {
+        logo?.let { BitmapFactory.decodeFile(it.file.path, BitmapFactory.Options().apply { inSampleSize = 4 })?.asImageBitmap() }
+    }
+    if (bitmap != null) {
+        Image(bitmap, "Logo", Modifier.size(size).clip(CircleShape).border(1.dp, Ink.copy(alpha = 0.12f), CircleShape), contentScale = ContentScale.Crop)
+        return
+    }
     Box(Modifier.size(size).background(look.primary, CircleShape), contentAlignment = Alignment.Center) {
         Text(
-            name.firstOrNull { it.isLetterOrDigit() }?.uppercase().orEmpty(),
+            site.businessName.firstOrNull { it.isLetterOrDigit() }?.uppercase().orEmpty(),
             style = TextStyle(fontFamily = Newsreader, fontWeight = FontWeight.Medium, fontSize = (size.value * 0.48f).sp),
             color = look.onPrimary,
         )
