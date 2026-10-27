@@ -22,7 +22,7 @@ enum class PageKey(val title: String, val slug: String) {
 
     companion object {
         /** Pages shown in the app's preview, in the same order as the photo pills. */
-        val SHOWN = listOf(HOME, MENU, SHOWROOM, EVENTS)
+        val SHOWN = listOf(HOME, SHOWROOM, MENU, EVENTS)
     }
 }
 
