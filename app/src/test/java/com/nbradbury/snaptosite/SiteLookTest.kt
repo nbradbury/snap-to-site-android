@@ -25,6 +25,13 @@ class SiteLookTest {
     }
 
     @Test
+    fun `showroom photo goes in the Home intro`() {
+        val withShowroom = photos + Photo(File("5-SHOWROOM.jpg"), PhotoKind.SHOWROOM)
+        assertEquals(5, SiteLook.withTaggedPhotos(cafe, withShowroom).about.photo)
+        assertEquals(setOf(1, 3), SiteLook.toRead(withShowroom).keys)
+    }
+
+    @Test
     fun `no tagged photos means no Home photo or logo`() {
         val placed = SiteLook.withTaggedPhotos(cafe, photos.filter { it.kind == PhotoKind.MENU })
         assertEquals(null, placed.hero.photo)

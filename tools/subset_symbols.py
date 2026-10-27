@@ -19,7 +19,7 @@ photo_camera mic web arrow_back smartphone edit stop arrow_forward close check_c
 restaurant_menu palette event cameraswitch photo_library image check remove record_voice_over
 edit_note cloud open_in_new lock menu history account_circle undo public language keyboard
 event_busy soup_kitchen local_cafe location_on schedule restart_alt key logout rate_review
-chevron_right error call mail directions info send auto_awesome warning
+chevron_right error call mail directions info send auto_awesome warning shopping_bag
 """.split()
 
 BASE = "https://github.com/google/material-design-icons/raw/master/variablefont/"

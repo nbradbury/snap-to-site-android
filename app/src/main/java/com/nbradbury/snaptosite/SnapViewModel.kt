@@ -400,6 +400,9 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
             if (PhotoKind.STOREFRONT in kinds) {
                 add(BuildStep("image", "Preparing your storefront photo", "Sized for your Home page", Where.DEVICE, StepState.DONE))
             }
+            if (PhotoKind.SHOWROOM in kinds) {
+                add(BuildStep("shopping_bag", "Preparing your showroom photo", "Sized for your Home page", Where.DEVICE, StepState.DONE))
+            }
             add(
                 BuildStep(
                     "record_voice_over", "Understanding your business",
@@ -409,16 +412,16 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
             )
             add(
                 if (PhotoKind.MENU in kinds) {
-                    BuildStep("restaurant_menu", "Reading your menu board", "", Where.CLOUD)
+                    BuildStep("restaurant_menu", "Reading your menu", "", Where.CLOUD)
                 } else {
                     BuildStep("restaurant_menu", "No menu photo", "Skipped. Snap it any time.", null, StepState.SKIPPED)
                 },
             )
             add(
                 if (PhotoKind.FLYER in kinds) {
-                    BuildStep("event", "Turning your flyer into an event", "", Where.CLOUD)
+                    BuildStep("event", "Reading your event flyer", "", Where.CLOUD)
                 } else {
-                    BuildStep("event", "No flyer", "Events page starts empty", null, StepState.SKIPPED)
+                    BuildStep("event", "No event flyer", "Events page starts empty", null, StepState.SKIPPED)
                 },
             )
             add(BuildStep("edit_note", "Writing your pages", "", Where.CLOUD))

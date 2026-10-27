@@ -70,25 +70,28 @@ private val PhotoKind.icon
     get() = when (this) {
         PhotoKind.STOREFRONT -> "storefront"
         PhotoKind.MENU -> "restaurant_menu"
-        PhotoKind.LOGO -> "palette"
+        PhotoKind.SHOWROOM -> "shopping_bag"
         PhotoKind.FLYER -> "event"
+        PhotoKind.LOGO -> "palette"
     }
 
 private val PhotoKind.title
     get() = when (this) {
         PhotoKind.STOREFRONT -> "Storefront"
-        PhotoKind.MENU -> "Menu board"
+        PhotoKind.MENU -> "Menu"
+        PhotoKind.SHOWROOM -> "Showroom"
+        PhotoKind.FLYER -> "Events"
         PhotoKind.LOGO -> "Logo"
-        PhotoKind.FLYER -> "Flyer"
     }
 
 /** What to photograph, shown on an empty tile and in the camera. */
 private val PhotoKind.hint
     get() = when (this) {
         PhotoKind.STOREFRONT -> "Step back so your sign is in frame"
-        PhotoKind.MENU -> "Fit the whole board in the frame"
+        PhotoKind.MENU -> "Fit the whole menu or price list in the frame"
+        PhotoKind.SHOWROOM -> "Your products on display, or the inside of your shop"
+        PhotoKind.FLYER -> "A poster or flyer for an upcoming event"
         PhotoKind.LOGO -> "A cup, sign or card with your logo"
-        PhotoKind.FLYER -> "Any poster or flyer for an event"
     }
 
 /** What the app will do with the photo, shown once a tile has one. */
@@ -96,8 +99,9 @@ private val PhotoKind.use
     get() = when (this) {
         PhotoKind.STOREFRONT -> "Your Home photo"
         PhotoKind.MENU -> "We'll read it when we build"
-        PhotoKind.LOGO -> "Your site's colors"
+        PhotoKind.SHOWROOM -> "Shown on your Home page"
         PhotoKind.FLYER -> "We'll turn it into an event"
+        PhotoKind.LOGO -> "Your site's colors"
     }
 
 /**
@@ -123,7 +127,7 @@ fun CaptureScreen(state: UiState, viewModel: SnapViewModel) {
 
 @Composable
 private fun Tiles(state: UiState, viewModel: SnapViewModel, choose: (PhotoKind) -> Unit) {
-    val byKind = state.photos.associateBy { it.kind }
+    val byKind = state.photos.filter { it.kind in PhotoKind.TILES }.associateBy { it.kind }
     Column(Modifier.fillMaxSize().background(Snap.CameraBackground)) {
         Row(
             Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(start = 4.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
@@ -147,13 +151,14 @@ private fun Tiles(state: UiState, viewModel: SnapViewModel, choose: (PhotoKind) 
             Modifier.weight(1f).padding(start = 12.dp, end = 12.dp, bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            PhotoKind.entries.chunked(2).forEach { row ->
+            PhotoKind.TILES.chunked(2).forEach { row ->
                 Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                     row.forEach { kind ->
                         Tile(
                             kind = kind,
                             photo = byKind[kind],
-                            swatches = state.colors.swatches.takeIf { kind == PhotoKind.LOGO },
+                            // Site colors come from the storefront photo.
+                            swatches = state.colors.swatches.takeIf { kind == PhotoKind.STOREFRONT },
                             onTake = { viewModel.takePhoto(kind) },
                             onChoose = { choose(kind) },
                             modifier = Modifier.weight(1f).fillMaxHeight(),
@@ -208,7 +213,8 @@ private fun Tile(
                 Text(kind.title, style = Type.Label, color = Color.White)
             }
             if (photo != null) {
-                if (swatches != null) Swatches(swatches) else Text(kind.use, style = Type.Caption, color = Color.White.copy(alpha = 0.85f))
+                Text(kind.use, style = Type.Caption, color = Color.White.copy(alpha = 0.85f))
+                swatches?.let { Swatches(it) }
             }
         }
         Column(

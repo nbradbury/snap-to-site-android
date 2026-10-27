@@ -67,11 +67,17 @@ object SiteLook {
         .filter { it.value.kind == PhotoKind.MENU || it.value.kind == PhotoKind.FLYER }
         .associate { it.index to it.value }
 
-    /** Puts the owner's latest storefront photo on Home and their logo in the header. */
+    /**
+     * Puts the owner's latest storefront photo at the top of Home and their showroom photo in the
+     * intro, plus a logo saved by an earlier version, if any, in the header.
+     */
     fun withTaggedPhotos(site: SiteModel, photos: List<Photo>): SiteModel {
-        val storefront = photos.indexOfLast { it.kind == PhotoKind.STOREFRONT }.takeIf { it >= 0 }
-        val logo = photos.indexOfLast { it.kind == PhotoKind.LOGO }.takeIf { it >= 0 }
-        return site.copy(hero = site.hero.copy(photo = storefront), about = site.about.copy(photo = null), logoPhoto = logo)
+        fun latest(kind: PhotoKind) = photos.indexOfLast { it.kind == kind }.takeIf { it >= 0 }
+        return site.copy(
+            hero = site.hero.copy(photo = latest(PhotoKind.STOREFRONT)),
+            about = site.about.copy(photo = latest(PhotoKind.SHOWROOM)),
+            logoPhoto = latest(PhotoKind.LOGO),
+        )
     }
 
     fun logoIndex(site: SiteModel, photos: List<Photo>): Int? =

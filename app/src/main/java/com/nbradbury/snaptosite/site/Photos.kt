@@ -5,12 +5,24 @@ import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import java.io.File
 
-/** What the owner said a photo shows, from the capture mode they shot it in. */
+/**
+ * What the owner said a photo shows, from the tile they took it for. Photo files are named by
+ * these names, so renaming one would orphan saved photos.
+ */
 enum class PhotoKind(val label: String) {
     STOREFRONT("storefront"),
-    MENU("menu board"),
+    MENU("menu"),
+    SHOWROOM("showroom"),
+    FLYER("event flyer or poster"),
+
+    /** No longer offered, but kept so logo photos saved by earlier versions still load. */
     LOGO("logo"),
-    FLYER("flyer or poster"),
+    ;
+
+    companion object {
+        /** The kinds the capture screen offers, in tile order. */
+        val TILES = listOf(STOREFRONT, MENU, SHOWROOM, FLYER)
+    }
 }
 
 data class Photo(val file: File, val kind: PhotoKind)
