@@ -45,7 +45,7 @@ class SiteAi(apiKey: String, private val assets: AssetManager) {
         val content = photoBlocks(photos) + BetaContentBlockParam.ofText(
             "Today is ${today()}.\n\nThe owner describes their business:\n\n$description$confirmed",
         )
-        return request(SiteModel::class.java, BUILD_PROMPT, content, BetaOutputConfig.Effort.HIGH)
+        return request(SiteModel::class.java, BUILD_PROMPT, content, BetaOutputConfig.Effort.MEDIUM)
     }
 
     /** [newPhotos] are photos added with this edit; their indexes continue after [photoCount] existing ones. */
@@ -55,7 +55,8 @@ class SiteAi(apiKey: String, private val assets: AssetManager) {
             "Today is ${today()}. The site has $photoCount existing photos (indexes 0–${photoCount - 1}).\n\n" +
                 "Current site:\n${MAPPER.writeValueAsString(site)}\n\nThe owner says: $instruction",
         )
-        return request(SiteEdit::class.java, EDIT_PROMPT, content, BetaOutputConfig.Effort.MEDIUM)
+        val response = request(SiteEditResponse::class.java, EDIT_PROMPT, content, BetaOutputConfig.Effort.MEDIUM)
+        return SiteEdit(response.title, response.summary, response.changes.applyTo(site))
     }
 
     /** Cloud fallback for [OnDeviceFacts] on phones without Gemini Nano. */
@@ -117,6 +118,13 @@ class SiteAi(apiKey: String, private val assets: AssetManager) {
             BetaStopReason.MAX_TOKENS -> throw SiteAiException("The response was too long. Try fewer photos.")
             else -> Unit
         }
+        message.usage().let { u ->
+            Log.i(
+                TAG,
+                "${type.simpleName}: input=${u.inputTokens()} cacheRead=${u.cacheReadInputTokens().orElse(0)} " +
+                    "cacheWrite=${u.cacheCreationInputTokens().orElse(0)} output=${u.outputTokens()}",
+            )
+        }
         val json = message.content().firstNotNullOfOrNull { it.text().orElse(null)?.text() }
             ?: throw SiteAiException("Claude didn't return a site.")
         return MAPPER.readValue(json, type)
@@ -170,10 +178,12 @@ class SiteAi(apiKey: String, private val assets: AssetManager) {
 
         private val EDIT_PROMPT = """
             You maintain a small-business website on the owner's behalf. They tell you what changed,
-            usually by voice, and you return the complete updated site plus a one-sentence summary.
+            usually by voice, and you return just the parts of the site that change, plus a
+            one-sentence summary. Leave every unchanged part null; when a list changes, return the
+            whole new list.
 
-            - Change only what the owner asked for and what follows directly from it. Leave
-              everything else exactly as it is, including photo indexes.
+            - Change only what the owner asked for and what follows directly from it. Keep photo
+              indexes as they are in anything you return.
             - A temporary change (a holiday closure, a sold-out item) should be reflected where it
               applies and announced in the banner, with the specific date. A closure on a particular
               day goes in the hours as a dated exception, e.g. "Thursday, Nov 26": "Closed ·

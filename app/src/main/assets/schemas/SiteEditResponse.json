@@ -1,0 +1,179 @@
+{
+  "$schema" : "https://json-schema.org/draft/2020-12/schema",
+  "type" : "object",
+  "properties" : {
+    "changes" : {
+      "type" : "object",
+      "properties" : {
+        "about" : {
+          "type" : [ "object", "null" ],
+          "properties" : {
+            "photo" : {
+              "type" : [ "integer", "null" ]
+            },
+            "text" : {
+              "type" : "string",
+              "description" : "A short intro paragraph under the headline: where the business is and what makes it worth a visit"
+            }
+          },
+          "required" : [ "photo", "text" ],
+          "additionalProperties" : false
+        },
+        "banner" : {
+          "type" : [ "string", "null" ],
+          "description" : "New banner text, an empty string to remove the banner, or null to leave it"
+        },
+        "businessName" : {
+          "type" : [ "string", "null" ]
+        },
+        "contact" : {
+          "type" : [ "object", "null" ],
+          "properties" : {
+            "address" : {
+              "type" : [ "string", "null" ]
+            },
+            "email" : {
+              "type" : [ "string", "null" ]
+            },
+            "phone" : {
+              "type" : [ "string", "null" ]
+            }
+          },
+          "required" : [ "address", "email", "phone" ],
+          "additionalProperties" : false
+        },
+        "events" : {
+          "description" : "The complete new events list if any of it changes, else null",
+          "type" : [ "array", "null" ],
+          "items" : {
+            "type" : "object",
+            "properties" : {
+              "date" : {
+                "type" : "string",
+                "description" : "Date in YYYY-MM-DD form"
+              },
+              "description" : {
+                "type" : [ "string", "null" ]
+              },
+              "photo" : {
+                "type" : [ "integer", "null" ]
+              },
+              "time" : {
+                "type" : [ "string", "null" ],
+                "description" : "e.g. 6 – 8pm"
+              },
+              "title" : {
+                "type" : "string"
+              }
+            },
+            "required" : [ "date", "description", "photo", "time", "title" ],
+            "additionalProperties" : false
+          }
+        },
+        "hero" : {
+          "type" : [ "object", "null" ],
+          "properties" : {
+            "heading" : {
+              "type" : "string",
+              "description" : "Short headline for the home page saying what the business is known for, e.g. Espresso, morning pastries & soup at lunch."
+            },
+            "photo" : {
+              "type" : [ "integer", "null" ],
+              "description" : "Index of the best wide photo for the top of the home page, usually the storefront"
+            }
+          },
+          "required" : [ "heading", "photo" ],
+          "additionalProperties" : false
+        },
+        "hours" : {
+          "description" : "The complete new hours list if any of it changes, else null",
+          "type" : [ "array", "null" ],
+          "items" : {
+            "type" : "object",
+            "properties" : {
+              "day" : {
+                "type" : "string",
+                "description" : "A weekday name or range like Tuesday – Sunday, or a specific date like Thursday, Nov 26"
+              },
+              "exception" : {
+                "type" : "boolean",
+                "description" : "True for a one-off date that overrides the regular hours"
+              },
+              "hours" : {
+                "type" : "string",
+                "description" : "e.g. 7am – 3pm, or Closed, or Closed · Thanksgiving"
+              }
+            },
+            "required" : [ "day", "exception", "hours" ],
+            "additionalProperties" : false
+          }
+        },
+        "menu" : {
+          "description" : "The complete new menu if any of it changes, else null",
+          "type" : [ "array", "null" ],
+          "items" : {
+            "type" : "object",
+            "properties" : {
+              "items" : {
+                "type" : "array",
+                "items" : {
+                  "type" : "object",
+                  "properties" : {
+                    "description" : {
+                      "type" : [ "string", "null" ]
+                    },
+                    "name" : {
+                      "type" : "string"
+                    },
+                    "price" : {
+                      "type" : [ "string", "null" ],
+                      "description" : "Price exactly as shown, e.g. $4.50"
+                    }
+                  },
+                  "required" : [ "description", "name", "price" ],
+                  "additionalProperties" : false
+                }
+              },
+              "name" : {
+                "type" : "string"
+              }
+            },
+            "required" : [ "items", "name" ],
+            "additionalProperties" : false
+          }
+        },
+        "special" : {
+          "type" : [ "object", "null" ],
+          "properties" : {
+            "label" : {
+              "type" : "string",
+              "description" : "e.g. Today's soup"
+            },
+            "text" : {
+              "type" : "string",
+              "description" : "e.g. Tomato basil, or Ask at the counter"
+            }
+          },
+          "required" : [ "label", "text" ],
+          "additionalProperties" : false,
+          "description" : "New special; one with an empty label removes the special; null leaves it"
+        },
+        "tagline" : {
+          "type" : [ "string", "null" ]
+        }
+      },
+      "required" : [ "about", "banner", "businessName", "contact", "events", "hero", "hours", "menu", "special", "tagline" ],
+      "additionalProperties" : false
+    },
+    "summary" : {
+      "type" : "string",
+      "description" : "One short sentence saying what changed, e.g. Updated hours and added a banner"
+    },
+    "title" : {
+      "type" : "string",
+      "description" : "Two to four words naming the change, e.g. Closed for Thanksgiving"
+    }
+  },
+  "required" : [ "changes", "summary", "title" ],
+  "additionalProperties" : false
+}
