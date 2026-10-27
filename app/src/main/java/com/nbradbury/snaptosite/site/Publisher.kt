@@ -62,6 +62,18 @@ class Publisher(private val wp: WpSite, private val photos: List<Photo>) {
 
 /** Where a site's logo and colors come from: the photos the owner tagged, else Claude's picks. */
 object SiteLook {
+    /** Photos Claude needs to read, keyed by index: menu boards and flyers. */
+    fun toRead(photos: List<Photo>): Map<Int, Photo> = photos.withIndex()
+        .filter { it.value.kind == PhotoKind.MENU || it.value.kind == PhotoKind.FLYER }
+        .associate { it.index to it.value }
+
+    /** Puts the owner's latest storefront photo on Home and their logo in the header. */
+    fun withTaggedPhotos(site: SiteModel, photos: List<Photo>): SiteModel {
+        val storefront = photos.indexOfLast { it.kind == PhotoKind.STOREFRONT }.takeIf { it >= 0 }
+        val logo = photos.indexOfLast { it.kind == PhotoKind.LOGO }.takeIf { it >= 0 }
+        return site.copy(hero = site.hero.copy(photo = storefront), about = site.about.copy(photo = null), logoPhoto = logo)
+    }
+
     fun logoIndex(site: SiteModel, photos: List<Photo>): Int? =
         photos.indexOfLast { it.kind == PhotoKind.LOGO }.takeIf { it >= 0 } ?: site.logoPhoto
 

@@ -33,9 +33,13 @@ class SiteAiException(message: String) : Exception(message)
 class SiteAi(apiKey: String, private val assets: AssetManager) {
     private val client: AnthropicClient = AnthropicOkHttpClient.builder().apiKey(apiKey).build()
 
-    fun buildSite(description: String, facts: HeardFacts?, photos: List<Photo>): SiteModel {
+    /**
+     * [photos] are only the ones with something to read (menus, flyers), keyed by their index
+     * among all the owner's photos; the app places storefront and logo photos itself.
+     */
+    fun buildSite(description: String, facts: HeardFacts?, photos: Map<Int, Photo>): SiteModel {
         val confirmed = facts?.let { "\n\nDetails the owner confirmed:\n${MAPPER.writeValueAsString(it)}" }.orEmpty()
-        val content = photoBlocks(photos, firstIndex = 0) + BetaContentBlockParam.ofText(
+        val content = photoBlocks(photos) + BetaContentBlockParam.ofText(
             "Today is ${today()}.\n\nThe owner describes their business:\n\n$description$confirmed",
         )
         return request(SiteModel::class.java, BUILD_PROMPT, content, BetaOutputConfig.Effort.HIGH)
@@ -43,7 +47,8 @@ class SiteAi(apiKey: String, private val assets: AssetManager) {
 
     /** [newPhotos] are photos added with this edit; their indexes continue after [photoCount] existing ones. */
     fun editSite(site: SiteModel, instruction: String, photoCount: Int, newPhotos: List<Photo>): SiteEdit {
-        val content = photoBlocks(newPhotos, firstIndex = photoCount) + BetaContentBlockParam.ofText(
+        val labeled = newPhotos.withIndex().associate { (i, photo) -> photoCount + i to photo }
+        val content = photoBlocks(labeled) + BetaContentBlockParam.ofText(
             "Today is ${today()}. The site has $photoCount existing photos (indexes 0–${photoCount - 1}).\n\n" +
                 "Current site:\n${MAPPER.writeValueAsString(site)}\n\nThe owner says: $instruction",
         )
@@ -60,9 +65,9 @@ class SiteAi(apiKey: String, private val assets: AssetManager) {
 
     private fun today() = LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, MMMM d, yyyy"))
 
-    private fun photoBlocks(photos: List<Photo>, firstIndex: Int) = photos.flatMapIndexed { i, photo ->
+    private fun photoBlocks(photos: Map<Int, Photo>) = photos.flatMap { (index, photo) ->
         listOf(
-            BetaContentBlockParam.ofText("Photo ${firstIndex + i} (the owner says it's their ${photo.kind.label}):"),
+            BetaContentBlockParam.ofText("Photo $index (the owner says it's their ${photo.kind.label}):"),
             BetaContentBlockParam.ofImage(
                 BetaBase64ImageSource.builder()
                     .mediaType(BetaBase64ImageSource.MediaType.IMAGE_JPEG)
@@ -142,16 +147,15 @@ class SiteAi(apiKey: String, private val assets: AssetManager) {
         fun schemaAsset(type: Class<*>) = "schemas/${type.simpleName}.json"
 
         private val BUILD_PROMPT = """
-            You build small-business websites from what an owner tells you and the photos they take
-            of their storefront, products, menu boards, flyers and business cards. Produce the site's
-            content.
+            You build small-business websites from what an owner tells you and photos of their menu
+            boards and flyers. Produce the site's content.
 
             - Use only facts from the description and photos. Leave a field null or a list empty
               rather than inventing prices, hours, addresses or events.
             - Transcribe menus and price lists from photos into the menu, keeping prices exactly as
-              written. Read flyers into events and business cards into contact details.
-            - Use the storefront photo for the hero. Don't use photos of menus, flyers or business
-              cards as decoration.
+              written. Read flyers into events, and give each event its flyer's photo index.
+            - Leave hero.photo, about.photo and logoPhoto null; the app fills them in from the
+              storefront and logo photos the owner took.
             - Group days with the same hours, e.g. "Tuesday – Sunday": "7am – 3pm" and "Monday":
               "Closed".
             - Event dates are YYYY-MM-DD. Work out the year from today's date when a flyer leaves it

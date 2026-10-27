@@ -408,7 +408,8 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
             }
             try {
                 val site = withContext(Dispatchers.IO) {
-                    ai().buildSite(store.description, store.facts, photoStore.all())
+                    val photos = photoStore.all()
+                    SiteLook.withTaggedPhotos(ai().buildSite(store.description, store.facts, SiteLook.toRead(photos)), photos)
                 }
                 ticker.cancel()
                 store.site = site
