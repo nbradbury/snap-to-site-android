@@ -165,6 +165,7 @@ private fun Picker(state: UiState, viewModel: SnapViewModel, choose: (PhotoKind)
             swatches = state.colors.swatches.takeIf { kind == PhotoKind.STOREFRONT },
             onTake = { viewModel.takePhoto(kind) },
             onChoose = { choose(kind) },
+            onRemove = { viewModel.removePhoto(kind) },
             modifier = Modifier.weight(1f).fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 16.dp),
         )
     }
@@ -198,6 +199,7 @@ private fun Tile(
     swatches: List<String>?,
     onTake: () -> Unit,
     onChoose: () -> Unit,
+    onRemove: () -> Unit,
     modifier: Modifier,
 ) {
     Box(modifier.clip(RoundedCornerShape(24.dp)).background(Color(0xFF1C1C22))) {
@@ -233,6 +235,10 @@ private fun Tile(
             Column(Modifier.align(Alignment.TopStart).padding(16.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(kind.use, style = Type.Label, color = Color.White)
                 swatches?.let { Swatches(it) }
+            }
+            // Only a card with a photo can be cleared.
+            Box(Modifier.align(Alignment.TopEnd).padding(8.dp)) {
+                RoundCameraButton("delete", "Remove photo", onRemove)
             }
         }
         Row(

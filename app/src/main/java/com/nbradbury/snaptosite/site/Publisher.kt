@@ -25,7 +25,7 @@ class Publisher(private val wp: WpSite, private val photos: List<Photo>) {
 
         val renderer = BlockRenderer(SiteLook.colors(site, photos), media)
         val pages = mutableMapOf<PageKey, PublishedPage>()
-        for (key in renderer.pageKeys(site)) {
+        for (key in BlockRenderer.writeOrder(SiteLook.pages(photos))) {
             val content = renderer.render(site, key, pages.mapValues { it.value.link })
             val existing = state.pages[key]
             val write = { ref: PageRef -> PublishedPage(ref.id, ref.link, ref.modifiedGmt, content.hashCode()) }
@@ -62,6 +62,35 @@ class Publisher(private val wp: WpSite, private val photos: List<Photo>) {
 
 /** Where a site's logo and colors come from: the photos the owner tagged, else Claude's picks. */
 object SiteLook {
+    /**
+     * The site's pages, in preview order: Storefront always, since it's the front page, and
+     * Showroom, Menu and Events only once the owner has given a photo for them.
+     */
+    fun pages(photos: List<Photo>): List<PageKey> {
+        val kinds = photos.map { it.kind }.toSet()
+        return PageKey.SHOWN.filter { page ->
+            when (page) {
+                PageKey.HOME -> true
+                PageKey.SHOWROOM -> PhotoKind.SHOWROOM in kinds
+                PageKey.MENU -> PhotoKind.MENU in kinds
+                PageKey.EVENTS -> PhotoKind.FLYER in kinds
+                PageKey.VISIT -> false
+            }
+        }
+    }
+
+    /** Points [site]'s photo references at the new indexes from Photos.remove; removed photos drop out. */
+    fun remap(site: SiteModel, moved: Map<Int, Int>): SiteModel {
+        val map = { index: Int? -> index?.let { moved[it] } }
+        return site.copy(
+            logoPhoto = map(site.logoPhoto),
+            hero = site.hero.copy(photo = map(site.hero.photo)),
+            about = site.about.copy(photo = map(site.about.photo)),
+            showroom = site.showroom.copy(photo = map(site.showroom.photo)),
+            events = site.events.map { it.copy(photo = map(it.photo)) },
+        )
+    }
+
     /** Photos Claude needs to read, keyed by index: menu boards and flyers. */
     fun toRead(photos: List<Photo>): Map<Int, Photo> = photos.withIndex()
         .filter { it.value.kind == PhotoKind.MENU || it.value.kind == PhotoKind.FLYER }

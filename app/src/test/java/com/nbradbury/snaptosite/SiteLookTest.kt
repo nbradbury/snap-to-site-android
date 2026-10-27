@@ -1,5 +1,6 @@
 package com.nbradbury.snaptosite
 
+import com.nbradbury.snaptosite.site.PageKey
 import com.nbradbury.snaptosite.site.Photo
 import com.nbradbury.snaptosite.site.PhotoKind
 import com.nbradbury.snaptosite.site.SiteLook
@@ -29,6 +30,27 @@ class SiteLookTest {
         val withShowroom = photos + Photo(File("5-SHOWROOM.jpg"), PhotoKind.SHOWROOM)
         assertEquals(5, SiteLook.withTaggedPhotos(cafe, withShowroom).showroom.photo)
         assertEquals(setOf(1, 3), SiteLook.toRead(withShowroom).keys)
+    }
+
+    @Test
+    fun `pages follow the photos given, with Storefront always`() {
+        // photos: storefront, menu, logo, flyer, storefront
+        assertEquals(listOf(PageKey.HOME, PageKey.MENU, PageKey.EVENTS), SiteLook.pages(photos))
+        assertEquals(listOf(PageKey.HOME), SiteLook.pages(emptyList()))
+        val all = photos + Photo(File("5-SHOWROOM.jpg"), PhotoKind.SHOWROOM)
+        assertEquals(listOf(PageKey.HOME, PageKey.SHOWROOM, PageKey.MENU, PageKey.EVENTS), SiteLook.pages(all))
+    }
+
+    @Test
+    fun `remap follows renumbered photos and drops removed ones`() {
+        val site = cafe.copy(hero = cafe.hero.copy(photo = 4), logoPhoto = 2, events = cafe.events.map { it.copy(photo = 3) })
+        // Removing the menu (index 1) moves 2→1, 3→2, 4→3.
+        val remapped = SiteLook.remap(site, mapOf(0 to 0, 2 to 1, 3 to 2, 4 to 3))
+        assertEquals(3, remapped.hero.photo)
+        assertEquals(1, remapped.logoPhoto)
+        assertEquals(2, remapped.events.single().photo)
+        // Removing the flyer drops the event's photo.
+        assertEquals(null, SiteLook.remap(site, mapOf(0 to 0, 1 to 1, 2 to 2, 4 to 3)).events.single().photo)
     }
 
     @Test

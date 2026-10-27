@@ -71,6 +71,7 @@ private val CODEPOINTS = mapOf(
     "auto_awesome" to '',
     "warning" to '',
     "shopping_bag" to '\uF1CC',
+    "delete" to '\uE92E',
 )
 
 private val outlined = FontFamily(

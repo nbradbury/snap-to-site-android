@@ -108,7 +108,8 @@ fun SitePreview(state: UiState, site: SiteModel, onPage: (PageKey) -> Unit, modi
                     modifier = Modifier.fillMaxWidth().then(ring(Section.BANNER)).background(look.accent).padding(horizontal = 18.dp, vertical = 10.dp),
                 )
             }
-            when (state.page) {
+            val pages = SiteLook.pages(state.photos)
+            when (state.page.takeIf { it in pages } ?: PageKey.HOME) {
                 PageKey.HOME, PageKey.VISIT -> Storefront(site, state.photos, look, ring, onPage)
                 PageKey.MENU -> Menu(site, look, ring)
                 PageKey.SHOWROOM -> Showroom(site, state.photos, ring)
@@ -149,7 +150,7 @@ private fun Storefront(site: SiteModel, photos: List<Photo>, look: Look, ring: (
                 Text(special.text, style = TextStyle(fontFamily = Newsreader, fontSize = 20.sp, lineHeight = 26.sp), color = Ink)
             }
         }
-        if (site.menu.isNotEmpty()) SiteButton("See the menu", look) { onPage(PageKey.MENU) }
+        if (PageKey.MENU in SiteLook.pages(photos)) SiteButton("See the menu", look) { onPage(PageKey.MENU) }
         Visit(site, look, ring)
     }
 }

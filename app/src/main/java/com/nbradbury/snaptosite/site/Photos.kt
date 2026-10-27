@@ -61,13 +61,23 @@ class Photos(context: Context) {
     }
 
     /**
-     * Replaces the photo of [kind] with [source], renumbering the rest. Only for before a site is
-     * built, since a built site refers to photos by index.
+     * Removes the photos of [kind] and renumbers the rest, returning each remaining photo's old
+     * index mapped to its new one so a draft's photo references can follow (SiteLook.remap). Only
+     * for before a site is published, since a published site refers to photos by index.
      */
-    fun replace(source: ImageDecoder.Source, kind: PhotoKind): Photo {
-        all().filter { it.kind == kind }.forEach { it.file.delete() }
-        all().forEachIndexed { i, photo -> photo.file.renameTo(File(dir, "$i-${photo.kind.name}.jpg")) }
-        return add(source, kind)
+    fun remove(kind: PhotoKind): Map<Int, Int> {
+        val before = all()
+        val moved = mutableMapOf<Int, Int>()
+        before.forEachIndexed { old, photo ->
+            if (photo.kind == kind) {
+                photo.file.delete()
+            } else {
+                val new = moved.size
+                if (new != old) photo.file.renameTo(File(dir, "$new-${photo.kind.name}.jpg"))
+                moved[old] = new
+            }
+        }
+        return moved
     }
 
     fun clear() {
