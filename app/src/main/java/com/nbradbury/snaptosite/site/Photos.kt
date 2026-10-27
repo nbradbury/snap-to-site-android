@@ -1,0 +1,59 @@
+package com.nbradbury.snaptosite.site
+
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.ImageDecoder
+import java.io.File
+
+/** What the owner said a photo shows, from the capture mode they shot it in. */
+enum class PhotoKind(val label: String) {
+    STOREFRONT("storefront"),
+    MENU("menu board"),
+    LOGO("logo"),
+    FLYER("flyer or poster"),
+}
+
+data class Photo(val file: File, val kind: PhotoKind)
+
+/**
+ * The owner's captured photos, stored in app storage as downscaled JPEGs named `<index>-<kind>.jpg`.
+ * A photo's index is how the site model refers to it.
+ */
+class Photos(context: Context) {
+    private val dir = File(context.filesDir, "photos").apply { mkdirs() }
+
+    fun all(): List<Photo> = dir.listFiles().orEmpty()
+        .mapNotNull { file ->
+            val parts = file.nameWithoutExtension.split("-")
+            val index = parts.getOrNull(0)?.toIntOrNull() ?: return@mapNotNull null
+            val kind = parts.getOrNull(1)?.let { name -> PhotoKind.entries.find { it.name == name } }
+                ?: return@mapNotNull null
+            index to Photo(file, kind)
+        }
+        .sortedBy { it.first }
+        .map { it.second }
+
+    /** Copies [source] in as the next photo, scaled so its long edge is at most [MAX_EDGE] pixels. */
+    fun add(source: ImageDecoder.Source, kind: PhotoKind): Photo {
+        val bitmap = ImageDecoder.decodeBitmap(source) { decoder, info, _ ->
+            val longEdge = maxOf(info.size.width, info.size.height)
+            if (longEdge > MAX_EDGE) {
+                val scale = MAX_EDGE.toFloat() / longEdge
+                decoder.setTargetSize((info.size.width * scale).toInt(), (info.size.height * scale).toInt())
+            }
+            decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE
+        }
+        val file = File(dir, "${all().size}-${kind.name}.jpg")
+        file.outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, 85, it) }
+        return Photo(file, kind)
+    }
+
+    fun clear() {
+        dir.listFiles()?.forEach { it.delete() }
+    }
+
+    private companion object {
+        // Claude's recommended maximum before it downsamples images itself
+        const val MAX_EDGE = 1568
+    }
+}
