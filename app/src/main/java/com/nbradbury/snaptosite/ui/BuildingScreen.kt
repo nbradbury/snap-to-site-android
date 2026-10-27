@@ -31,6 +31,7 @@ import com.nbradbury.snaptosite.SnapViewModel
 import com.nbradbury.snaptosite.StepState
 import com.nbradbury.snaptosite.UiState
 import com.nbradbury.snaptosite.site.SiteColors
+import com.nbradbury.snaptosite.site.SiteLook
 
 @Composable
 fun BuildingScreen(state: UiState, viewModel: SnapViewModel) {
@@ -49,7 +50,7 @@ fun BuildingScreen(state: UiState, viewModel: SnapViewModel) {
             Text(
                 when {
                     state.buildError != null -> state.buildError
-                    state.buildDone -> "${viewModel.pageKeys(state.site!!).size} pages, your details, your colors. Take a look before anyone else does."
+                    state.buildDone -> "${SiteLook.pages(state.photos).size} pages, your details, your colors. Take a look before anyone else does."
                     else -> "This takes about a minute. Nothing goes live until you say so."
                 },
                 style = Type.BodyMedium,

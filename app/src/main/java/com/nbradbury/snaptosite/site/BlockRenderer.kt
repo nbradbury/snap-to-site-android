@@ -26,24 +26,15 @@ enum class PageKey(val title: String, val slug: String) {
     }
 }
 
-data class RenderedPage(val key: PageKey, val content: String)
-
 /**
  * Turns a [SiteModel] into core-block markup. Each section is wrapped in a group with a stable
- * `snap-*` class so the site's structure is recognizable in the editor. Menu, Showroom and Events
- * pages are only published when there's something to put on them.
+ * `snap-*` class so the site's structure is recognizable in the editor. Which pages a site has is
+ * decided by the photos the owner gave (SiteLook.pages).
  */
 class BlockRenderer(
     private val colors: SiteColors,
     private val media: Map<Int, UploadedMedia>,
 ) {
-    /** Pages [site] publishes, in the order they should be written (Storefront last, so it can link to the rest). */
-    fun pageKeys(site: SiteModel) = buildList {
-        if (site.menu.isNotEmpty()) add(PageKey.MENU)
-        if (hasShowroom(site)) add(PageKey.SHOWROOM)
-        if (site.events.isNotEmpty()) add(PageKey.EVENTS)
-        add(PageKey.HOME)
-    }
 
     /** Renders one page; [links] holds the URLs of pages already published, for cross-links. */
     fun render(site: SiteModel, key: PageKey, links: Map<PageKey, String> = emptyMap()): String {
@@ -57,8 +48,6 @@ class BlockRenderer(
         return site.banner?.takeIf { it.isNotBlank() }?.let { banner(it) }.orEmpty() + body
     }
 
-    fun renderAll(site: SiteModel, links: Map<PageKey, String> = emptyMap()) =
-        pageKeys(site).map { RenderedPage(it, render(site, it, links)) }
 
     private fun home(site: SiteModel, links: Map<PageKey, String>) = buildString {
         append(image(site.hero.photo))
@@ -175,7 +164,8 @@ class BlockRenderer(
             "\n<!-- /wp:image -->\n\n"
 
     companion object {
-        fun hasShowroom(site: SiteModel) = site.showroom.photo != null || site.showroom.text.isNotBlank()
+        /** [pages] in the order to write them: Storefront last, so it can link to the rest. */
+        fun writeOrder(pages: List<PageKey>) = pages.filter { it != PageKey.HOME } + pages.filter { it == PageKey.HOME }
 
         fun esc(text: String) = text
             .replace("&", "&amp;")

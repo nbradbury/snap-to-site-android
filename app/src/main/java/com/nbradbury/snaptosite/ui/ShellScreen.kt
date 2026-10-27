@@ -45,6 +45,7 @@ import com.nbradbury.snaptosite.Tab
 import com.nbradbury.snaptosite.UiState
 import com.nbradbury.snaptosite.site.FieldChange
 import com.nbradbury.snaptosite.site.PageKey
+import com.nbradbury.snaptosite.site.SiteLook
 
 /** Preview before publishing, and the app's Site / Activity / Account tabs after. */
 @Composable
@@ -90,8 +91,9 @@ fun ShellScreen(state: UiState, viewModel: SnapViewModel) {
                 Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                PageKey.SHOWN.forEach { page ->
-                    val selected = state.page == page
+                val pages = SiteLook.pages(state.photos)
+                pages.forEach { page ->
+                    val selected = state.page == page || (page == PageKey.HOME && state.page !in pages)
                     FilterChip(
                         selected = selected,
                         onClick = { viewModel.setPage(page) },

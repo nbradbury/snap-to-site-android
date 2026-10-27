@@ -17,12 +17,11 @@ class BlockRendererTest {
     private val renderer = BlockRenderer(SiteColors("#2e4b3c", "#b9603a", "#f5efe3"), media)
 
     @Test
-    fun `publishes Menu, Showroom and Events only when they have content, Storefront last`() {
-        assertEquals(listOf(PageKey.MENU, PageKey.EVENTS, PageKey.HOME), renderer.pageKeys(cafe))
-        val withShowroom = cafe.copy(showroom = Showroom("Frames from local makers.", photo = 1))
-        assertEquals(listOf(PageKey.MENU, PageKey.SHOWROOM, PageKey.EVENTS, PageKey.HOME), renderer.pageKeys(withShowroom))
-        val bare = cafe.copy(menu = emptyList(), events = emptyList())
-        assertEquals(listOf(PageKey.HOME), renderer.pageKeys(bare))
+    fun `storefront is written last so it can link to the rest`() {
+        assertEquals(
+            listOf(PageKey.SHOWROOM, PageKey.MENU, PageKey.HOME),
+            BlockRenderer.writeOrder(listOf(PageKey.HOME, PageKey.SHOWROOM, PageKey.MENU)),
+        )
     }
 
     @Test

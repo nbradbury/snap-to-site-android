@@ -11,7 +11,6 @@ import com.nbradbury.snaptosite.ai.OnDeviceFacts
 import com.nbradbury.snaptosite.ai.SiteAi
 import com.nbradbury.snaptosite.ai.SiteEdit
 import com.nbradbury.snaptosite.ai.SiteModel
-import com.nbradbury.snaptosite.site.BlockRenderer
 import com.nbradbury.snaptosite.site.EventDates
 import com.nbradbury.snaptosite.site.FieldChange
 import com.nbradbury.snaptosite.site.LogoColors
@@ -367,11 +366,24 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
             )
             return@work
         }
-        // One photo per tile: a new one replaces what was there.
-        photoStore.replace(source, kind)
+        // One photo per kind: a new one replaces what was there.
+        val moved = photoStore.remove(kind)
+        photoStore.add(source, kind)
         file?.delete()
+        photosChanged(moved)
+        _state.update { it.copy(shooting = false) }
+    }
+
+    fun removePhoto(kind: PhotoKind) = work(showBusy = false) {
+        photosChanged(photoStore.remove(kind))
+    }
+
+    /** After photos are removed or replaced, keeps an unpublished draft pointing at the right ones. */
+    private fun photosChanged(moved: Map<Int, Int>) {
         val photos = photoStore.all()
-        _state.update { it.copy(photos = photos, shooting = false, colors = previewColors(photos)) }
+        val draft = store.site?.takeIf { store.published == null }?.let { SiteLook.withTaggedPhotos(SiteLook.remap(it, moved), photos) }
+        draft?.let { store.site = it }
+        _state.update { it.copy(photos = photos, site = draft ?: it.site, colors = previewColors(photos)) }
     }
 
     /** Colors from the logo (or storefront) photo, shown on the Logo tile before there's a site. */
@@ -497,21 +509,12 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
         val detail = when (step.icon) {
             "restaurant_menu" -> site.menu.sumOf { it.items.size }.let { n -> "$n items in ${site.menu.size} sections → Menu page" }
             "event" -> site.events.firstOrNull()?.let { "${it.title} · ${EventDates.short(it.date)}" } ?: "No event found on the flyer"
-            "edit_note" -> pageKeys(site).joinToString(" · ") { it.title }
+            "edit_note" -> SiteLook.pages(photoStore.all()).joinToString(" · ") { it.title }
             else -> step.detail
         }
         return step.copy(state = StepState.DONE, detail = detail)
     }
 
-    /** The pages a build produces, in the preview's order. */
-    fun pageKeys(site: SiteModel) = PageKey.SHOWN.filter { key ->
-        when (key) {
-            PageKey.MENU -> site.menu.isNotEmpty()
-            PageKey.SHOWROOM -> BlockRenderer.hasShowroom(site)
-            PageKey.EVENTS -> site.events.isNotEmpty()
-            else -> true
-        }
-    }
 
     fun goReview() = _state.update { it.copy(screen = Screen.REVIEW, page = PageKey.HOME, highlight = emptySet()) }
 
