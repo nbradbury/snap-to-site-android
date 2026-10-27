@@ -14,8 +14,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -24,7 +22,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.horizontalScroll
@@ -45,12 +42,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -216,33 +213,16 @@ fun CaptureScreen(state: UiState, viewModel: SnapViewModel) {
         }
 
         Row(Modifier.fillMaxWidth().height(116.dp).padding(horizontal = 28.dp), verticalAlignment = Alignment.CenterVertically) {
-            // The design's last-shot slot doubles as a way to pick an existing photo.
-            Box(Modifier.weight(1f)) {
-                val last = state.photos.lastOrNull()
-                val pick = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
-                if (!edit && last != null) {
-                    Box(
-                        Modifier.size(48.dp).background(Snap.PrimaryContainer, RoundedCornerShape(12.dp)).clickable(onClick = pick),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Symbol(last.kind.icon, tint = Snap.OnPrimaryContainer)
-                        Text(
-                            state.photos.size.toString(),
-                            style = TextStyle(fontSize = 11.sp, lineHeight = 20.sp),
-                            color = Color.White,
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .offset(6.dp, (-6).dp)
-                                .background(Snap.Primary, CircleShape)
-                                .padding(horizontal = 6.dp),
-                        )
-                    }
-                } else {
-                    Box(
-                        Modifier.size(48.dp).dashedBorder().clickable(onClick = pick),
-                        contentAlignment = Alignment.Center,
-                    ) { Symbol("photo_library", size = 22.dp, tint = Snap.CameraChipBorder) }
-                }
+            // Pick an existing photo for the current mode, in place of the design's last-shot slot;
+            // the header already shows how many shots there are.
+            Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                Surface(
+                    onClick = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                    shape = CircleShape,
+                    color = Snap.CameraButton,
+                    contentColor = Snap.OnCamera,
+                    modifier = Modifier.size(48.dp).semantics { contentDescription = "Choose from your photos" },
+                ) { Box(contentAlignment = Alignment.Center) { Symbol("photo_library") } }
             }
             Surface(onClick = shoot, shape = CircleShape, color = Color.Transparent, border = BorderStroke(4.dp, Color.White), modifier = Modifier.size(76.dp)) {
                 Box(contentAlignment = Alignment.Center) { Box(Modifier.size(60.dp).background(Color.White, CircleShape)) }
@@ -311,12 +291,4 @@ private fun BoxScope.Brackets() {
             )
         }
     }
-}
-
-private fun Modifier.dashedBorder() = drawBehind {
-    drawRoundRect(
-        color = Snap.CameraChipBorder,
-        cornerRadius = CornerRadius(12.dp.toPx()),
-        style = Stroke(1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx()))),
-    )
 }
