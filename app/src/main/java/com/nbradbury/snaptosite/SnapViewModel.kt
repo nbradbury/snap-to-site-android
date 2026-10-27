@@ -286,7 +286,11 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
         refreshFacts(text, if (useNano()) Where.DEVICE else Where.CLOUD)
     }
 
+    /** The text and source of the last facts extracted, so stopping again without changes costs nothing. */
+    private var factsFor: Pair<String, Where>? = null
+
     private fun refreshFacts(text: String, where: Where) {
+        if (factsFor == text to where && _state.value.facts != null) return
         factsJob?.cancel()
         factsJob = viewModelScope.launch(Dispatchers.IO) {
             val facts = try {
@@ -297,6 +301,7 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
                 null
             } ?: return@launch
             store.facts = facts
+            factsFor = text to where
             _state.update { it.copy(facts = facts, factsFrom = where) }
         }
     }
