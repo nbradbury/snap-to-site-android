@@ -25,9 +25,9 @@ class SiteLookTest {
     }
 
     @Test
-    fun `showroom photo goes in the Home intro`() {
+    fun `showroom photo goes on the Showroom page`() {
         val withShowroom = photos + Photo(File("5-SHOWROOM.jpg"), PhotoKind.SHOWROOM)
-        assertEquals(5, SiteLook.withTaggedPhotos(cafe, withShowroom).about.photo)
+        assertEquals(5, SiteLook.withTaggedPhotos(cafe, withShowroom).showroom.photo)
         assertEquals(setOf(1, 3), SiteLook.toRead(withShowroom).keys)
     }
 

@@ -142,6 +142,20 @@
             "additionalProperties" : false
           }
         },
+        "showroom" : {
+          "type" : [ "object", "null" ],
+          "properties" : {
+            "photo" : {
+              "type" : [ "integer", "null" ]
+            },
+            "text" : {
+              "type" : "string",
+              "description" : "One short paragraph about what customers find inside: products, brands, displays. Empty if the owner didn't say"
+            }
+          },
+          "required" : [ "photo", "text" ],
+          "additionalProperties" : false
+        },
         "special" : {
           "type" : [ "object", "null" ],
           "properties" : {
@@ -162,7 +176,7 @@
           "type" : [ "string", "null" ]
         }
       },
-      "required" : [ "about", "banner", "businessName", "contact", "events", "hero", "hours", "menu", "special", "tagline" ],
+      "required" : [ "about", "banner", "businessName", "contact", "events", "hero", "hours", "menu", "showroom", "special", "tagline" ],
       "additionalProperties" : false
     },
     "summary" : {

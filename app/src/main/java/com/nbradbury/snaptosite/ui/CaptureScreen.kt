@@ -99,10 +99,10 @@ private val PhotoKind.hint
 /** What the app will do with the photo, shown once a tile has one. */
 private val PhotoKind.use
     get() = when (this) {
-        PhotoKind.STOREFRONT -> "Your Home photo"
-        PhotoKind.MENU -> "We'll read it when we build"
-        PhotoKind.SHOWROOM -> "Shown on your Home page"
-        PhotoKind.FLYER -> "We'll turn it into an event"
+        PhotoKind.STOREFRONT -> "Your Storefront page"
+        PhotoKind.MENU -> "We'll read it for your Menu page"
+        PhotoKind.SHOWROOM -> "Your Showroom page"
+        PhotoKind.FLYER -> "We'll read it for your Events page"
         PhotoKind.LOGO -> "Your site's colors and header"
     }
 

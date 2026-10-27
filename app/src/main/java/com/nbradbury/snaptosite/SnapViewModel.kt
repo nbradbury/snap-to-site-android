@@ -11,6 +11,7 @@ import com.nbradbury.snaptosite.ai.OnDeviceFacts
 import com.nbradbury.snaptosite.ai.SiteAi
 import com.nbradbury.snaptosite.ai.SiteEdit
 import com.nbradbury.snaptosite.ai.SiteModel
+import com.nbradbury.snaptosite.site.BlockRenderer
 import com.nbradbury.snaptosite.site.EventDates
 import com.nbradbury.snaptosite.site.FieldChange
 import com.nbradbury.snaptosite.site.LogoColors
@@ -401,10 +402,10 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
                 },
             )
             if (PhotoKind.STOREFRONT in kinds) {
-                add(BuildStep("image", "Preparing your storefront photo", "Sized for your Home page", Where.DEVICE, StepState.DONE))
+                add(BuildStep("image", "Preparing your storefront photo", "Sized for your Storefront page", Where.DEVICE, StepState.DONE))
             }
             if (PhotoKind.SHOWROOM in kinds) {
-                add(BuildStep("shopping_bag", "Preparing your showroom photo", "Sized for your Home page", Where.DEVICE, StepState.DONE))
+                add(BuildStep("shopping_bag", "Preparing your showroom photo", "Sized for your Showroom page", Where.DEVICE, StepState.DONE))
             }
             add(
                 BuildStep(
@@ -502,9 +503,11 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
         return step.copy(state = StepState.DONE, detail = detail)
     }
 
-    fun pageKeys(site: SiteModel) = PageKey.entries.filter { key ->
+    /** The pages a build produces, in the preview's order. */
+    fun pageKeys(site: SiteModel) = PageKey.SHOWN.filter { key ->
         when (key) {
             PageKey.MENU -> site.menu.isNotEmpty()
+            PageKey.SHOWROOM -> BlockRenderer.hasShowroom(site)
             PageKey.EVENTS -> site.events.isNotEmpty()
             else -> true
         }

@@ -165,8 +165,9 @@ class SiteAi(apiKey: String, private val assets: AssetManager) {
               rather than inventing prices, hours, addresses or events.
             - Transcribe menus and price lists from photos into the menu, keeping prices exactly as
               written. Read flyers into events, and give each event its flyer's photo index.
-            - Leave hero.photo, about.photo and logoPhoto null; the app fills them in from the
-              storefront and logo photos the owner took.
+            - Leave hero.photo, about.photo, showroom.photo and logoPhoto null; the app fills them in
+              from the storefront, showroom and logo photos the owner took.
+            - Write the showroom text from what the owner says they sell, or leave it empty.
             - Group days with the same hours, e.g. "Tuesday – Sunday": "7am – 3pm" and "Monday":
               "Closed".
             - Event dates are YYYY-MM-DD. Work out the year from today's date when a flyer leaves it
