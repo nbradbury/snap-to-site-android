@@ -1,6 +1,7 @@
 package com.nbradbury.snaptosite.ai
 
 import android.content.res.AssetManager
+import android.util.Log
 import com.anthropic.client.AnthropicClient
 import com.anthropic.client.okhttp.AnthropicOkHttpClient
 import com.anthropic.core.JsonValue
@@ -24,6 +25,7 @@ import com.nbradbury.snaptosite.site.Photo
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Base64
+import kotlin.jvm.optionals.getOrNull
 
 class SiteAiException(message: String) : Exception(message)
 
@@ -95,7 +97,8 @@ class SiteAi(apiKey: String, private val assets: AssetManager) {
         } catch (e: RateLimitException) {
             throw SiteAiException("Claude is busy right now. Try again in a minute.")
         } catch (e: AnthropicServiceException) {
-            throw SiteAiException("Claude returned an error (${e.statusCode()}). Try again.")
+            Log.w(TAG, "Claude request failed: ${e.message}", e)
+            throw SiteAiException("Claude returned an error (${e.statusCode()}): ${apiMessage(e)}")
         } catch (e: AnthropicIoException) {
             throw SiteAiException("Couldn't reach Claude. Check your connection.")
         }
@@ -110,6 +113,11 @@ class SiteAi(apiKey: String, private val assets: AssetManager) {
             ?: throw SiteAiException("Claude didn't return a site.")
         return MAPPER.readValue(json, type)
     }
+
+    /** The API's own explanation from an error body, e.g. which parameter it rejected. */
+    private fun apiMessage(e: AnthropicServiceException): String =
+        e.body().asObject().getOrNull()?.get("error")?.asObject()?.getOrNull()?.get("message")?.asString()?.getOrNull()
+            ?: "Try again."
 
     /**
      * The SDK can derive a schema from a class, but that needs reflection APIs Android lacks, so the
@@ -128,6 +136,8 @@ class SiteAi(apiKey: String, private val assets: AssetManager) {
 
     companion object {
         val MAPPER = jacksonObjectMapper()
+
+        private const val TAG = "SiteAi"
 
         fun schemaAsset(type: Class<*>) = "schemas/${type.simpleName}.json"
 
