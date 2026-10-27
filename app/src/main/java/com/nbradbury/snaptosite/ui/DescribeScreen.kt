@@ -106,11 +106,11 @@ fun DescribeScreen(state: UiState, viewModel: SnapViewModel) {
             }
         }
         when {
-            state.typing -> Row(Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 24.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            state.typing -> Row(Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 24.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 PillButton("Speak instead", talk, kind = ButtonKind.OUTLINED)
                 PillButton("Done", { viewModel.doneTalking() }, Modifier.weight(1f), enabled = state.transcript.isNotBlank())
             }
-            done -> Row(Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 24.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            done -> Row(Modifier.padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 24.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 PillButton("Say it again", rememberWithMicPermission(viewModel::sayAgain), kind = ButtonKind.OUTLINED)
                 PillButton("Next: show us around", viewModel::goCapture, Modifier.weight(1f), trailingIcon = "arrow_forward")
             }
