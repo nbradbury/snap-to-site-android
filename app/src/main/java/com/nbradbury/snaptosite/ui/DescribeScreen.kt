@@ -54,10 +54,12 @@ fun DescribeScreen(state: UiState, viewModel: SnapViewModel) {
                     color = Snap.OnSurfaceVariant,
                 )
             }
-            if (state.typing) {
+            // Typed, or spoken and finished: either way the owner can correct it.
+            if (state.typing || (!state.talking && state.transcript.isNotEmpty())) {
                 OutlinedTextField(
                     value = state.transcript,
                     onValueChange = viewModel::setTranscript,
+                    label = if (state.typing) null else ({ Text("Your description") }),
                     placeholder = { Text("We're a little café on Alder Street…") },
                     textStyle = Type.Title,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 150.dp),
