@@ -1,0 +1,27 @@
+{
+  "$schema" : "https://json-schema.org/draft/2020-12/schema",
+  "type" : "object",
+  "properties" : {
+    "business" : {
+      "type" : [ "string", "null" ],
+      "description" : "Kind of business, e.g. Café"
+    },
+    "hours" : {
+      "type" : [ "string", "null" ],
+      "description" : "Opening hours, briefly"
+    },
+    "name" : {
+      "type" : [ "string", "null" ]
+    },
+    "serves" : {
+      "type" : [ "string", "null" ],
+      "description" : "What they sell or serve, briefly"
+    },
+    "where" : {
+      "type" : [ "string", "null" ],
+      "description" : "Street or neighborhood"
+    }
+  },
+  "required" : [ "business", "hours", "name", "serves", "where" ],
+  "additionalProperties" : false
+}
