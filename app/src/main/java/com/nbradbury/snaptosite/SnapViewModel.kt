@@ -44,7 +44,7 @@ enum class Tab { SITE, ACTIVITY, ACCOUNT }
 /** Where a piece of AI work ran, shown as a tag so the owner knows what left the phone. */
 enum class Where { DEVICE, CLOUD }
 
-enum class StepState { PENDING, ACTIVE, DONE, SKIPPED }
+enum class StepState { PENDING, ACTIVE, DONE, SKIPPED, FAILED }
 
 data class BuildStep(
     val icon: String,
@@ -446,7 +446,15 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
                 }
             } catch (e: Exception) {
                 ticker.cancel()
-                _state.update { it.copy(buildError = e.message ?: e.toString()) }
+                _state.update { st ->
+                    st.copy(
+                        buildError = e.message ?: e.toString(),
+                        // Stop the spinner on the step that was running; the ones after it never started.
+                        steps = st.steps.map { step ->
+                            if (step.state == StepState.ACTIVE) step.copy(state = StepState.FAILED, detail = "Didn't finish") else step
+                        },
+                    )
+                }
                 askForNewKey(e, ::startBuild)
             }
         }
