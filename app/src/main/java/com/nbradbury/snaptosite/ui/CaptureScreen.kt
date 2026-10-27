@@ -2,6 +2,7 @@ package com.nbradbury.snaptosite.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -13,22 +14,20 @@ import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Surface
@@ -45,19 +44,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.nbradbury.snaptosite.SnapViewModel
 import com.nbradbury.snaptosite.UiState
+import com.nbradbury.snaptosite.site.Photo
 import com.nbradbury.snaptosite.site.PhotoKind
 import kotlinx.coroutines.delay
 import java.io.File
@@ -70,7 +74,7 @@ private val PhotoKind.icon
         PhotoKind.FLYER -> "event"
     }
 
-private val PhotoKind.chip
+private val PhotoKind.title
     get() = when (this) {
         PhotoKind.STOREFRONT -> "Storefront"
         PhotoKind.MENU -> "Menu board"
@@ -78,6 +82,7 @@ private val PhotoKind.chip
         PhotoKind.FLYER -> "Flyer"
     }
 
+/** What to photograph, shown on an empty tile and in the camera. */
 private val PhotoKind.hint
     get() = when (this) {
         PhotoKind.STOREFRONT -> "Step back so your sign is in frame"
@@ -86,12 +91,164 @@ private val PhotoKind.hint
         PhotoKind.FLYER -> "Any poster or flyer for an event"
     }
 
+/** What the app will do with the photo, shown once a tile has one. */
+private val PhotoKind.use
+    get() = when (this) {
+        PhotoKind.STOREFRONT -> "Your Home photo"
+        PhotoKind.MENU -> "We'll read it when we build"
+        PhotoKind.LOGO -> "Your site's colors"
+        PhotoKind.FLYER -> "We'll turn it into an event"
+    }
+
+/**
+ * Step 2: a tile for each kind of photo, showing a placeholder or the chosen photo, with buttons
+ * to take or choose one. Taking a photo opens the camera for that tile. After launch, snapping a
+ * flyer from the Site tab goes straight to the camera.
+ */
 @Composable
 fun CaptureScreen(state: UiState, viewModel: SnapViewModel) {
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        uri?.let { viewModel.onPhoto(uri = it) }
+    }
+    val choose = { kind: PhotoKind ->
+        viewModel.choosePhoto(kind)
+        picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+    }
+    if (state.shooting) {
+        Camera(state, viewModel) { choose(state.captureMode) }
+    } else {
+        Tiles(state, viewModel, choose)
+    }
+}
+
+@Composable
+private fun Tiles(state: UiState, viewModel: SnapViewModel, choose: (PhotoKind) -> Unit) {
+    val byKind = state.photos.associateBy { it.kind }
+    Column(Modifier.fillMaxSize().background(Snap.CameraBackground)) {
+        Row(
+            Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(start = 4.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            CircleIconButton("close", viewModel::back, tint = Snap.OnCamera)
+            Column(Modifier.weight(1f)) {
+                Text("Show us your place", style = Type.TitleMedium, color = Snap.OnCamera)
+                Text("Step 2 of 3 · ${byKind.size} of 4 photos", style = Type.Caption, color = Snap.OnCameraVariant)
+            }
+            val ready = byKind.isNotEmpty()
+            Surface(
+                onClick = { if (ready) viewModel.startBuild() },
+                shape = RoundedCornerShape(20.dp),
+                color = if (ready) Snap.InversePrimary else Snap.OnCamera.copy(alpha = 0.12f),
+                contentColor = if (ready) Snap.OnPrimaryContainer else Snap.OnCamera.copy(alpha = 0.38f),
+            ) { Text("Done", style = Type.Label, modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) }
+        }
+        Column(
+            Modifier.weight(1f).padding(start = 12.dp, end = 12.dp, bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            PhotoKind.entries.chunked(2).forEach { row ->
+                Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    row.forEach { kind ->
+                        Tile(
+                            kind = kind,
+                            photo = byKind[kind],
+                            swatches = state.colors.swatches.takeIf { kind == PhotoKind.LOGO },
+                            onTake = { viewModel.takePhoto(kind) },
+                            onChoose = { choose(kind) },
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun Tile(
+    kind: PhotoKind,
+    photo: Photo?,
+    swatches: List<String>?,
+    onTake: () -> Unit,
+    onChoose: () -> Unit,
+    modifier: Modifier,
+) {
+    Box(modifier.clip(RoundedCornerShape(20.dp)).background(Color(0xFF1C1C22))) {
+        val bitmap = remember(photo?.file?.path, photo?.file?.lastModified()) {
+            photo?.let { BitmapFactory.decodeFile(it.file.path, BitmapFactory.Options().apply { inSampleSize = 4 })?.asImageBitmap() }
+        }
+        if (bitmap != null) {
+            Image(bitmap, null, Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+            // Keeps the label and buttons readable over any photo.
+            Box(
+                Modifier.fillMaxSize().background(
+                    Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.55f), 0.35f to Color.Transparent, 0.6f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.7f)),
+                ),
+            )
+        } else {
+            Column(
+                Modifier.fillMaxSize().padding(start = 14.dp, end = 14.dp, bottom = 96.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Symbol(kind.icon, size = 36.dp, tint = Snap.CameraChipBorder)
+                Text(
+                    kind.hint,
+                    style = TextStyle(fontSize = 13.sp, lineHeight = 18.sp),
+                    color = Snap.OnCameraVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+        }
+        Column(Modifier.align(Alignment.TopStart).padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Symbol(if (photo != null) "check_circle" else kind.icon, size = 18.dp, fill = photo != null, tint = Color.White)
+                Text(kind.title, style = Type.Label, color = Color.White)
+            }
+            if (photo != null) {
+                if (swatches != null) Swatches(swatches) else Text(kind.use, style = Type.Caption, color = Color.White.copy(alpha = 0.85f))
+            }
+        }
+        Column(
+            Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(10.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
+        ) {
+            TileButton("photo_camera", "Take photo", primary = true, onClick = onTake)
+            TileButton("photo_library", "Choose photo", primary = false, onClick = onChoose)
+        }
+    }
+}
+
+@Composable
+private fun TileButton(icon: String, label: String, primary: Boolean, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(18.dp),
+        color = if (primary) Snap.PrimaryContainer else Color.Black.copy(alpha = 0.45f),
+        contentColor = if (primary) Snap.OnPrimaryContainer else Color.White,
+        border = if (primary) null else BorderStroke(1.dp, Color.White.copy(alpha = 0.5f)),
+        modifier = Modifier.fillMaxWidth().heightIn(min = 36.dp),
+    ) {
+        Row(
+            Modifier.padding(horizontal = 8.dp, vertical = 6.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp, Alignment.CenterHorizontally),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Symbol(icon, size = 18.dp)
+            Text(label, style = Type.Label.copy(fontSize = 13.sp), textAlign = TextAlign.Center)
+        }
+    }
+}
+
+/** The viewfinder for one kind of photo. [onChoose] picks an existing photo instead. */
+@Composable
+private fun Camera(state: UiState, viewModel: SnapViewModel, onChoose: () -> Unit) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
+    val kind = state.captureMode
     val edit = state.captureForEdit
-    val captured = state.capturedKinds
     var hasCamera by remember {
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
     }
@@ -108,10 +265,6 @@ fun CaptureScreen(state: UiState, viewModel: SnapViewModel) {
     var flash by remember { mutableStateOf(false) }
     LaunchedEffect(flash) { if (flash) { delay(140); flash = false } }
     val flashAlpha by animateFloatAsState(if (flash) 0.85f else 0f, tween(140), label = "flash")
-
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        uri?.let { viewModel.onPhoto(uri = it) }
-    }
     val shoot = {
         if (hasCamera && state.detect == null) {
             flash = true
@@ -129,27 +282,14 @@ fun CaptureScreen(state: UiState, viewModel: SnapViewModel) {
 
     Column(Modifier.fillMaxSize().background(Snap.CameraBackground)) {
         Row(
-            Modifier.fillMaxWidth().height(64.dp).padding(start = 4.dp, end = 8.dp),
+            Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(start = 4.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp),
         ) {
             CircleIconButton("close", viewModel::back, tint = Snap.OnCamera)
             Column(Modifier.weight(1f)) {
-                Text(if (edit) "Snap a flyer or sign" else "Show us your place", style = Type.TitleMedium, color = Snap.OnCamera)
-                Text(
-                    if (edit) "We'll add it to your site" else "Step 2 of 3 · ${captured.size} of 4 shots",
-                    style = Type.Caption,
-                    color = Snap.OnCameraVariant,
-                )
-            }
-            if (!edit) {
-                val ready = state.photos.isNotEmpty()
-                Surface(
-                    onClick = { if (ready) viewModel.startBuild() },
-                    shape = RoundedCornerShape(20.dp),
-                    color = if (ready) Snap.InversePrimary else Snap.OnCamera.copy(alpha = 0.12f),
-                    contentColor = if (ready) Snap.OnPrimaryContainer else Snap.OnCamera.copy(alpha = 0.38f),
-                ) { Text("Done", style = Type.Label, modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)) }
+                Text(if (edit) "Snap a flyer or sign" else kind.title, style = Type.TitleMedium, color = Snap.OnCamera)
+                Text(if (edit) "We'll add it to your site" else "Step 2 of 3", style = Type.Caption, color = Snap.OnCameraVariant)
             }
         }
 
@@ -171,9 +311,8 @@ fun CaptureScreen(state: UiState, viewModel: SnapViewModel) {
                     PillButton("Allow camera", { permission.launch(Manifest.permission.CAMERA) }, kind = ButtonKind.TEXT)
                 }
             }
-            val mode = if (edit) PhotoKind.FLYER else state.captureMode
             Text(
-                if (edit) "Point at a flyer or poster" else mode.hint,
+                if (edit) "Point at a flyer or poster" else kind.hint,
                 style = TextStyle(fontSize = 13.sp, lineHeight = 18.sp),
                 color = Color(0xFFF2EFF7),
                 modifier = Modifier
@@ -200,90 +339,35 @@ fun CaptureScreen(state: UiState, viewModel: SnapViewModel) {
             Box(Modifier.fillMaxSize().alpha(flashAlpha).background(Color.White))
         }
 
-        Row(
-            Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(start = 12.dp, end = 12.dp, top = 16.dp, bottom = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            if (edit) {
-                ModeChip("event", "Flyer or poster", selected = true, done = false) {}
-            } else {
-                PhotoKind.entries.forEach { kind ->
-                    ModeChip(kind.icon, kind.chip, selected = kind == state.captureMode, done = kind in captured) {
-                        viewModel.setCaptureMode(kind)
-                    }
-                }
-            }
-        }
-
         Row(Modifier.fillMaxWidth().height(116.dp).padding(horizontal = 28.dp), verticalAlignment = Alignment.CenterVertically) {
-            // The design's last-shot slot doubles as a way to pick an existing photo.
-            Box(Modifier.weight(1f)) {
-                val last = state.photos.lastOrNull()
-                val pick = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }
-                if (!edit && last != null) {
-                    Box(
-                        Modifier.size(48.dp).background(Snap.PrimaryContainer, RoundedCornerShape(12.dp)).clickable(onClick = pick),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Symbol(last.kind.icon, tint = Snap.OnPrimaryContainer)
-                        Text(
-                            state.photos.size.toString(),
-                            style = TextStyle(fontSize = 11.sp, lineHeight = 20.sp),
-                            color = Color.White,
-                            modifier = Modifier
-                                .align(Alignment.TopEnd)
-                                .offset(6.dp, (-6).dp)
-                                .background(Snap.Primary, CircleShape)
-                                .padding(horizontal = 6.dp),
-                        )
-                    }
-                } else {
-                    Box(
-                        Modifier.size(48.dp).dashedBorder().clickable(onClick = pick),
-                        contentAlignment = Alignment.Center,
-                    ) { Symbol("photo_library", size = 22.dp, tint = Snap.CameraChipBorder) }
-                }
+            Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                RoundCameraButton("photo_library", "Choose from your photos", onChoose)
             }
             Surface(onClick = shoot, shape = CircleShape, color = Color.Transparent, border = BorderStroke(4.dp, Color.White), modifier = Modifier.size(76.dp)) {
                 Box(contentAlignment = Alignment.Center) { Box(Modifier.size(60.dp).background(Color.White, CircleShape)) }
             }
             Box(Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-                Surface(
-                    onClick = {
-                        controller.cameraSelector = if (controller.cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) {
-                            CameraSelector.DEFAULT_FRONT_CAMERA
-                        } else {
-                            CameraSelector.DEFAULT_BACK_CAMERA
-                        }
-                    },
-                    shape = CircleShape,
-                    color = Snap.CameraButton,
-                    contentColor = Snap.OnCamera,
-                    modifier = Modifier.size(48.dp),
-                ) { Box(contentAlignment = Alignment.Center) { Symbol("cameraswitch") } }
+                RoundCameraButton("cameraswitch", "Switch camera") {
+                    controller.cameraSelector = if (controller.cameraSelector == CameraSelector.DEFAULT_BACK_CAMERA) {
+                        CameraSelector.DEFAULT_FRONT_CAMERA
+                    } else {
+                        CameraSelector.DEFAULT_BACK_CAMERA
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun ModeChip(icon: String, label: String, selected: Boolean, done: Boolean, onClick: () -> Unit) {
+private fun RoundCameraButton(icon: String, description: String, onClick: () -> Unit) {
     Surface(
         onClick = onClick,
-        shape = RoundedCornerShape(8.dp),
-        color = if (selected) Snap.PrimaryContainer else Color.Transparent,
-        contentColor = if (selected) Snap.OnPrimaryContainer else Snap.OnCamera,
-        border = BorderStroke(1.dp, if (selected) Snap.PrimaryContainer else Snap.CameraChipBorder),
-    ) {
-        Row(
-            Modifier.height(32.dp).padding(start = 8.dp, end = 12.dp),
-            horizontalArrangement = Arrangement.spacedBy(6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Symbol(if (done) "check_circle" else icon, size = 18.dp, fill = done)
-            Text(label, style = Type.Label)
-        }
-    }
+        shape = CircleShape,
+        color = Snap.CameraButton,
+        contentColor = Snap.OnCamera,
+        modifier = Modifier.size(48.dp).semantics { contentDescription = description },
+    ) { Box(contentAlignment = Alignment.Center) { Symbol(icon) } }
 }
 
 /** The four white corner brackets framing the viewfinder. */
@@ -311,12 +395,4 @@ private fun BoxScope.Brackets() {
             )
         }
     }
-}
-
-private fun Modifier.dashedBorder() = drawBehind {
-    drawRoundRect(
-        color = Snap.CameraChipBorder,
-        cornerRadius = CornerRadius(12.dp.toPx()),
-        style = Stroke(1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx()))),
-    )
 }

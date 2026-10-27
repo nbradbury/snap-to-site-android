@@ -44,7 +44,7 @@ enum class Tab { SITE, ACTIVITY, ACCOUNT }
 /** Where a piece of AI work ran, shown as a tag so the owner knows what left the phone. */
 enum class Where { DEVICE, CLOUD }
 
-enum class StepState { PENDING, ACTIVE, DONE, SKIPPED }
+enum class StepState { PENDING, ACTIVE, DONE, SKIPPED, FAILED }
 
 data class BuildStep(
     val icon: String,
@@ -93,6 +93,8 @@ data class UiState(
     val photos: List<Photo> = emptyList(),
     val captureMode: PhotoKind = PhotoKind.STOREFRONT,
     val captureForEdit: Boolean = false,
+    /** The camera is open for [captureMode]; otherwise the capture screen shows its photo tiles. */
+    val shooting: Boolean = false,
     val detect: String? = null,
 
     val steps: List<BuildStep> = emptyList(),
@@ -148,7 +150,7 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
                     facts = store.facts,
                     photos = photos,
                     site = site,
-                    colors = site?.let { s -> SiteLook.colors(s, photos) } ?: SiteColors.DEFAULT,
+                    colors = site?.let { s -> SiteLook.colors(s, photos) } ?: previewColors(photos),
                     published = published,
                     siteUrl = store.credentials?.siteUrl,
                     activity = store.activity,
@@ -227,7 +229,10 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
                 voice.cancel()
                 it.copy(screen = Screen.WELCOME, talking = false)
             }
-            Screen.CAPTURE -> it.copy(screen = if (it.captureForEdit) Screen.APP else Screen.DESCRIBE, detect = null)
+            Screen.CAPTURE -> when {
+                it.shooting && !it.captureForEdit -> it.copy(shooting = false)
+                else -> it.copy(screen = if (it.captureForEdit) Screen.APP else Screen.DESCRIBE, shooting = false, detect = null)
+            }
             Screen.REVIEW -> if (it.buildDone) it.copy(screen = Screen.BUILDING) else it
             else -> it
         }
@@ -312,17 +317,18 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
         _state.update { it.copy(facts = updated, dialog = null) }
     }
 
-    fun goCapture() = _state.update {
-        val next = PhotoKind.entries.firstOrNull { kind -> kind !in it.capturedKinds } ?: PhotoKind.STOREFRONT
-        it.copy(screen = Screen.CAPTURE, captureForEdit = false, captureMode = next, detect = null)
-    }
+    fun goCapture() = _state.update { it.copy(screen = Screen.CAPTURE, captureForEdit = false, shooting = false, detect = null) }
 
     // Capture
 
-    fun setCaptureMode(kind: PhotoKind) = _state.update { it.copy(captureMode = kind) }
+    /** Opens the camera for one of the capture screen's tiles. */
+    fun takePhoto(kind: PhotoKind) = _state.update { it.copy(captureMode = kind, shooting = true) }
+
+    /** Sets which tile a photo from the picker is for; the UI then opens the picker. */
+    fun choosePhoto(kind: PhotoKind) = _state.update { it.copy(captureMode = kind) }
 
     fun openSnap() = _state.update {
-        it.copy(screen = Screen.CAPTURE, captureForEdit = true, captureMode = PhotoKind.FLYER, detect = null)
+        it.copy(screen = Screen.CAPTURE, captureForEdit = true, shooting = true, captureMode = PhotoKind.FLYER, detect = null)
     }
 
     /** A photo from the camera ([file]) or the picker ([uri]) in the current capture mode. */
@@ -330,29 +336,31 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
         val resolver = getApplication<Application>().contentResolver
         val source = file?.let { ImageDecoder.createSource(it) } ?: ImageDecoder.createSource(resolver, uri!!)
         val kind = _state.value.captureMode
-        val photo = photoStore.add(source, kind)
-        file?.delete()
-        val photos = photoStore.all()
         if (_state.value.captureForEdit) {
+            // After launch the site refers to photos by index, so add rather than replace.
+            val photo = photoStore.add(source, kind)
+            file?.delete()
+            val photos = photoStore.all()
             _state.update { it.copy(photos = photos, detect = "Got it · adding it to your site") }
             delay(900)
-            _state.update { it.copy(screen = Screen.APP, tab = Tab.SITE, detect = null) }
+            _state.update { it.copy(screen = Screen.APP, tab = Tab.SITE, shooting = false, detect = null) }
             submitEdit(
                 "Here's a photo of a flyer or sign (photo ${photos.size - 1}). Add what it announces to the site.",
                 newPhotos = listOf(photo),
             )
             return@work
         }
-        val detect = when (kind) {
-            PhotoKind.STOREFRONT -> "Storefront · set as your Home photo"
-            PhotoKind.MENU -> "Menu board · we'll read it when we build"
-            PhotoKind.LOGO -> "Logo · ${LogoColors.from(photo.file, null).swatches.size} colors pulled"
-            PhotoKind.FLYER -> "Flyer · we'll turn it into an event"
-        }
-        val next = PhotoKind.entries.firstOrNull { k -> k !in photos.map { it.kind } } ?: kind
-        _state.update { it.copy(photos = photos, detect = detect) }
-        delay(1400)
-        _state.update { it.copy(detect = null, captureMode = next) }
+        // One photo per tile: a new one replaces what was there.
+        photoStore.replace(source, kind)
+        file?.delete()
+        val photos = photoStore.all()
+        _state.update { it.copy(photos = photos, shooting = false, colors = previewColors(photos)) }
+    }
+
+    /** Colors from the logo (or storefront) photo, shown on the Logo tile before there's a site. */
+    private fun previewColors(photos: List<Photo>): SiteColors {
+        val source = photos.lastOrNull { it.kind == PhotoKind.LOGO } ?: photos.lastOrNull { it.kind == PhotoKind.STOREFRONT }
+        return LogoColors.from(source?.file, null)
     }
 
     // Build
@@ -446,7 +454,15 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
                 }
             } catch (e: Exception) {
                 ticker.cancel()
-                _state.update { it.copy(buildError = e.message ?: e.toString()) }
+                _state.update { st ->
+                    st.copy(
+                        buildError = e.message ?: e.toString(),
+                        // Stop the spinner on the step that was running; the ones after it never started.
+                        steps = st.steps.map { step ->
+                            if (step.state == StepState.ACTIVE) step.copy(state = StepState.FAILED, detail = "Didn't finish") else step
+                        },
+                    )
+                }
                 askForNewKey(e, ::startBuild)
             }
         }

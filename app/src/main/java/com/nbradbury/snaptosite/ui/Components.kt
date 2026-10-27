@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -44,6 +45,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nbradbury.snaptosite.Where
@@ -78,15 +80,16 @@ fun PillButton(
     textStyle: TextStyle = Type.Label,
 ) {
     val shape = RoundedCornerShape(height / 2)
-    val padding = PaddingValues(horizontal = if (kind == ButtonKind.TEXT) 12.dp else 20.dp)
+    val padding = PaddingValues(horizontal = if (kind == ButtonKind.TEXT) 12.dp else 20.dp, vertical = 8.dp)
     val content: @Composable RowScope.() -> Unit = {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             leadingIcon?.let { Symbol(it, size = 20.dp, fill = iconFill) }
-            Text(text, style = textStyle)
+            Text(text, style = textStyle, textAlign = TextAlign.Center, modifier = Modifier.weight(1f, fill = false))
             trailingIcon?.let { Symbol(it, size = 18.dp) }
         }
     }
-    val mod = modifier.height(height)
+    // A minimum, not a fixed height, so large font sizes wrap instead of clipping.
+    val mod = modifier.heightIn(min = height)
     when (kind) {
         ButtonKind.FILLED -> Button(onClick, mod, enabled, shape, contentPadding = padding, content = content)
         ButtonKind.TONAL -> Button(

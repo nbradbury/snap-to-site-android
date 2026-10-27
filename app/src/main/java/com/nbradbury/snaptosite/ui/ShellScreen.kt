@@ -56,7 +56,7 @@ fun ShellScreen(state: UiState, viewModel: SnapViewModel) {
 
     Column(Modifier.fillMaxSize().background(Snap.Surface)) {
         when {
-            review -> Row(Modifier.fillMaxWidth().height(64.dp).padding(start = 4.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+            review -> Row(Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(start = 4.dp, end = 8.dp, top = 4.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 CircleIconButton("arrow_back", viewModel::back)
                 Column(Modifier.weight(1f)) {
                     Text("Preview", style = Type.Title, color = Snap.OnSurface)
@@ -64,7 +64,7 @@ fun ShellScreen(state: UiState, viewModel: SnapViewModel) {
                 }
             }
             state.tab == Tab.SITE -> Row(
-                Modifier.fillMaxWidth().height(64.dp).padding(start = 16.dp, end = 4.dp),
+                Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(start = 16.dp, end = 4.dp, top = 4.dp, bottom = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -80,7 +80,7 @@ fun ShellScreen(state: UiState, viewModel: SnapViewModel) {
                     CircleIconButton("open_in_new", { context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri())) }, tint = Snap.OnSurfaceVariant)
                 }
             }
-            else -> Box(Modifier.fillMaxWidth().height(64.dp).padding(horizontal = 16.dp), contentAlignment = Alignment.CenterStart) {
+            else -> Box(Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(horizontal = 16.dp), contentAlignment = Alignment.CenterStart) {
                 Text(if (state.tab == Tab.ACTIVITY) "Activity" else "Account", style = Type.Title, color = Snap.OnSurface)
             }
         }
@@ -128,7 +128,7 @@ fun ShellScreen(state: UiState, viewModel: SnapViewModel) {
                         color = Snap.Primary,
                         contentColor = Color.White,
                         shadowElevation = 4.dp,
-                        modifier = Modifier.weight(1f).height(56.dp),
+                        modifier = Modifier.weight(1f).heightIn(min = 56.dp),
                     ) {
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally), verticalAlignment = Alignment.CenterVertically) {
                             Symbol("mic", fill = true)
@@ -149,11 +149,11 @@ fun ShellScreen(state: UiState, viewModel: SnapViewModel) {
 
 @Composable
 private fun NavBar(tab: Tab, onTab: (Tab) -> Unit) {
-    Row(Modifier.fillMaxWidth().height(80.dp).background(Snap.SurfaceContainerHigh)) {
+    Row(Modifier.fillMaxWidth().background(Snap.SurfaceContainerHigh).heightIn(min = 80.dp)) {
         listOf(Triple(Tab.SITE, "Site", "web"), Triple(Tab.ACTIVITY, "Activity", "history"), Triple(Tab.ACCOUNT, "Account", "account_circle")).forEach { (t, label, icon) ->
             val selected = t == tab
             Column(
-                Modifier.weight(1f).fillMaxSize().clickable { onTab(t) }.padding(top = 12.dp),
+                Modifier.weight(1f).clickable { onTab(t) }.padding(top = 12.dp, bottom = 12.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {

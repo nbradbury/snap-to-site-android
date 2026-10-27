@@ -93,6 +93,9 @@ private fun StepRow(step: BuildStep) {
                 StepState.SKIPPED -> Box(Modifier.size(32.dp).background(Snap.SurfaceVariant, CircleShape), contentAlignment = Alignment.Center) {
                     Symbol("remove", size = 20.dp, tint = Snap.OnSurfaceVariant)
                 }
+                StepState.FAILED -> Box(Modifier.size(32.dp).background(ErrorContainer, CircleShape), contentAlignment = Alignment.Center) {
+                    Symbol("error", size = 20.dp, tint = OnErrorContainer)
+                }
                 StepState.ACTIVE -> Spinner()
                 StepState.PENDING -> Symbol(step.icon, tint = Snap.Outline)
             }
@@ -100,14 +103,14 @@ private fun StepRow(step: BuildStep) {
         Column(Modifier.weight(1f).padding(top = 2.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
             Text(step.label, style = Type.Body, color = Snap.OnSurface)
             val sub = when (step.state) {
-                StepState.DONE, StepState.SKIPPED -> step.detail
+                StepState.DONE, StepState.SKIPPED, StepState.FAILED -> step.detail
                 StepState.ACTIVE -> "Working…"
                 StepState.PENDING -> ""
             }
             if (sub.isNotEmpty()) Text(sub, style = Type.BodyMedium, color = Snap.OnSurfaceVariant)
             if (step.state == StepState.DONE) step.swatches?.let { Swatches(it) }
         }
-        if (step.where != null && step.state != StepState.SKIPPED) {
+        if (step.where != null && step.state != StepState.SKIPPED && step.state != StepState.FAILED) {
             Box(Modifier.padding(top = 4.dp)) { WhereTag(step.where) }
         }
     }
@@ -126,6 +129,9 @@ fun Swatches(colors: List<String>) {
         }
     }
 }
+
+private val ErrorContainer = Color(0xFFFFDAD6)
+private val OnErrorContainer = Color(0xFF93000A)
 
 fun color(hex: String): Color = runCatching { Color(android.graphics.Color.parseColor(hex)) }
     .getOrDefault(Color(android.graphics.Color.parseColor(SiteColors.DEFAULT.primary)))
