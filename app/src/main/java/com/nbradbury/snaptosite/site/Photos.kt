@@ -48,6 +48,16 @@ class Photos(context: Context) {
         return Photo(file, kind)
     }
 
+    /**
+     * Replaces the photo of [kind] with [source], renumbering the rest. Only for before a site is
+     * built, since a built site refers to photos by index.
+     */
+    fun replace(source: ImageDecoder.Source, kind: PhotoKind): Photo {
+        all().filter { it.kind == kind }.forEach { it.file.delete() }
+        all().forEachIndexed { i, photo -> photo.file.renameTo(File(dir, "$i-${photo.kind.name}.jpg")) }
+        return add(source, kind)
+    }
+
     fun clear() {
         dir.listFiles()?.forEach { it.delete() }
     }
