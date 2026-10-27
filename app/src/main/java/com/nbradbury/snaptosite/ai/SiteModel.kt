@@ -86,14 +86,51 @@ data class Contact(
     val email: String?,
 )
 
-/** Result of a post-launch edit: the full updated model plus a short description of the change. */
-data class SiteEdit(
+/** A post-launch edit, applied: the updated site plus a short description of the change. */
+data class SiteEdit(val title: String, val summary: String, val site: SiteModel)
+
+/**
+ * What Claude returns for an edit: only the sections that change, so a small change doesn't cost
+ * a whole site's worth of output tokens. Null means unchanged.
+ */
+data class SiteEditResponse(
     @JsonPropertyDescription("Two to four words naming the change, e.g. Closed for Thanksgiving")
     val title: String,
     @JsonPropertyDescription("One short sentence saying what changed, e.g. Updated hours and added a banner")
     val summary: String,
-    val site: SiteModel,
+    val changes: SitePatch,
 )
+
+data class SitePatch(
+    @JsonPropertyDescription("New banner text, an empty string to remove the banner, or null to leave it")
+    val banner: String?,
+    val businessName: String?,
+    val tagline: String?,
+    val hero: Hero?,
+    val about: About?,
+    @JsonPropertyDescription("New special; one with an empty label removes the special; null leaves it")
+    val special: Special?,
+    @JsonPropertyDescription("The complete new menu if any of it changes, else null")
+    val menu: List<MenuCategory>?,
+    @JsonPropertyDescription("The complete new hours list if any of it changes, else null")
+    val hours: List<DayHours>?,
+    @JsonPropertyDescription("The complete new events list if any of it changes, else null")
+    val events: List<Event>?,
+    val contact: Contact?,
+) {
+    fun applyTo(site: SiteModel) = site.copy(
+        banner = if (banner == null) site.banner else banner.ifBlank { null },
+        businessName = businessName ?: site.businessName,
+        tagline = tagline ?: site.tagline,
+        hero = hero ?: site.hero,
+        about = about ?: site.about,
+        special = if (special == null) site.special else special.takeIf { it.label.isNotBlank() },
+        menu = menu ?: site.menu,
+        hours = hours ?: site.hours,
+        events = events ?: site.events,
+        contact = contact ?: site.contact,
+    )
+}
 
 /** Details picked out of what the owner said, shown back while they talk. */
 data class HeardFacts(

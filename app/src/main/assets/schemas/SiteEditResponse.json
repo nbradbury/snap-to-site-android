@@ -2,11 +2,11 @@
   "$schema" : "https://json-schema.org/draft/2020-12/schema",
   "type" : "object",
   "properties" : {
-    "site" : {
+    "changes" : {
       "type" : "object",
       "properties" : {
         "about" : {
-          "type" : "object",
+          "type" : [ "object", "null" ],
           "properties" : {
             "photo" : {
               "type" : [ "integer", "null" ]
@@ -19,19 +19,15 @@
           "required" : [ "photo", "text" ],
           "additionalProperties" : false
         },
-        "accentColor" : {
-          "type" : "string",
-          "description" : "Hex color like #2a6f4e suiting the business, used when there's no logo or storefront photo"
-        },
         "banner" : {
           "type" : [ "string", "null" ],
-          "description" : "Short announcement shown at the top of every page, e.g. a holiday closure"
+          "description" : "New banner text, an empty string to remove the banner, or null to leave it"
         },
         "businessName" : {
-          "type" : "string"
+          "type" : [ "string", "null" ]
         },
         "contact" : {
-          "type" : "object",
+          "type" : [ "object", "null" ],
           "properties" : {
             "address" : {
               "type" : [ "string", "null" ]
@@ -47,7 +43,8 @@
           "additionalProperties" : false
         },
         "events" : {
-          "type" : "array",
+          "description" : "The complete new events list if any of it changes, else null",
+          "type" : [ "array", "null" ],
           "items" : {
             "type" : "object",
             "properties" : {
@@ -74,7 +71,7 @@
           }
         },
         "hero" : {
-          "type" : "object",
+          "type" : [ "object", "null" ],
           "properties" : {
             "heading" : {
               "type" : "string",
@@ -89,8 +86,8 @@
           "additionalProperties" : false
         },
         "hours" : {
-          "description" : "Regular opening hours in week order, plus dated exceptions such as holiday closures; empty if unknown",
-          "type" : "array",
+          "description" : "The complete new hours list if any of it changes, else null",
+          "type" : [ "array", "null" ],
           "items" : {
             "type" : "object",
             "properties" : {
@@ -111,13 +108,9 @@
             "additionalProperties" : false
           }
         },
-        "logoPhoto" : {
-          "type" : [ "integer", "null" ],
-          "description" : "Index of the photo showing the business's logo, if any"
-        },
         "menu" : {
-          "description" : "Menu or price list; empty if the business doesn't have one",
-          "type" : "array",
+          "description" : "The complete new menu if any of it changes, else null",
+          "type" : [ "array", "null" ],
           "items" : {
             "type" : "object",
             "properties" : {
@@ -163,14 +156,13 @@
           },
           "required" : [ "label", "text" ],
           "additionalProperties" : false,
-          "description" : "A daily special or similar changing item, if the owner mentions one"
+          "description" : "New special; one with an empty label removes the special; null leaves it"
         },
         "tagline" : {
-          "type" : "string",
-          "description" : "One short line under the business name"
+          "type" : [ "string", "null" ]
         }
       },
-      "required" : [ "about", "accentColor", "banner", "businessName", "contact", "events", "hero", "hours", "logoPhoto", "menu", "special", "tagline" ],
+      "required" : [ "about", "banner", "businessName", "contact", "events", "hero", "hours", "menu", "special", "tagline" ],
       "additionalProperties" : false
     },
     "summary" : {
@@ -182,6 +174,6 @@
       "description" : "Two to four words naming the change, e.g. Closed for Thanksgiving"
     }
   },
-  "required" : [ "site", "summary", "title" ],
+  "required" : [ "changes", "summary", "title" ],
   "additionalProperties" : false
 }

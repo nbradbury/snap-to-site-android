@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.module.kotlin.readValue
 import com.nbradbury.snaptosite.ai.HeardFacts
 import com.nbradbury.snaptosite.ai.SiteAi
-import com.nbradbury.snaptosite.ai.SiteEdit
+import com.nbradbury.snaptosite.ai.SiteEditResponse
 import com.nbradbury.snaptosite.ai.SiteModel
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -21,7 +21,7 @@ class SchemaTest {
     @Test
     fun `schema assets match the model classes`() {
         val stale = mutableListOf<String>()
-        for (type in listOf(SiteModel::class.java, SiteEdit::class.java, HeardFacts::class.java)) {
+        for (type in listOf(SiteModel::class.java, SiteEditResponse::class.java, HeardFacts::class.java)) {
             @Suppress("UNCHECKED_CAST")
             val format = StructuredOutputConfig.builder<Any>().format(type as Class<Any>).build().format().get()
             val schema = jsonMapper().valueToTree<JsonNode>(format).get("schema")
