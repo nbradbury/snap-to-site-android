@@ -90,7 +90,7 @@ fun ShellScreen(state: UiState, viewModel: SnapViewModel) {
                 Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                PageKey.entries.forEach { page ->
+                PageKey.SHOWN.forEach { page ->
                     val selected = state.page == page
                     FilterChip(
                         selected = selected,

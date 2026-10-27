@@ -146,6 +146,20 @@
         "additionalProperties" : false
       }
     },
+    "showroom" : {
+      "type" : "object",
+      "properties" : {
+        "photo" : {
+          "type" : [ "integer", "null" ]
+        },
+        "text" : {
+          "type" : "string",
+          "description" : "One short paragraph about what customers find inside: products, brands, displays. Empty if the owner didn't say"
+        }
+      },
+      "required" : [ "photo", "text" ],
+      "additionalProperties" : false
+    },
     "special" : {
       "type" : [ "object", "null" ],
       "properties" : {
@@ -167,6 +181,6 @@
       "description" : "One short line under the business name"
     }
   },
-  "required" : [ "about", "accentColor", "banner", "businessName", "contact", "events", "hero", "hours", "logoPhoto", "menu", "special", "tagline" ],
+  "required" : [ "about", "accentColor", "banner", "businessName", "contact", "events", "hero", "hours", "logoPhoto", "menu", "showroom", "special", "tagline" ],
   "additionalProperties" : false
 }

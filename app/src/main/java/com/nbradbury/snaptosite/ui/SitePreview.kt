@@ -109,10 +109,10 @@ fun SitePreview(state: UiState, site: SiteModel, onPage: (PageKey) -> Unit, modi
                 )
             }
             when (state.page) {
-                PageKey.HOME -> Home(site, state.photos, look, ring, onPage)
+                PageKey.HOME, PageKey.VISIT -> Storefront(site, state.photos, look, ring, onPage)
                 PageKey.MENU -> Menu(site, look, ring)
+                PageKey.SHOWROOM -> Showroom(site, state.photos, ring)
                 PageKey.EVENTS -> Events(site, look, ring)
-                PageKey.VISIT -> Visit(site, look, ring)
             }
             Row(
                 Modifier.fillMaxWidth().padding(top = 8.dp)
@@ -127,8 +127,9 @@ fun SitePreview(state: UiState, site: SiteModel, onPage: (PageKey) -> Unit, modi
     }
 }
 
+/** The front page: storefront photo, intro, special, then hours and how to find the business. */
 @Composable
-private fun Home(site: SiteModel, photos: List<Photo>, look: Look, ring: (Section) -> Modifier, onPage: (PageKey) -> Unit) {
+private fun Storefront(site: SiteModel, photos: List<Photo>, look: Look, ring: (Section) -> Modifier, onPage: (PageKey) -> Unit) {
     PageColumn(gap = 16) {
         site.hero.photo?.let { photos.getOrNull(it) }?.let { photo ->
             PhotoBox(photo, Modifier.fillMaxWidth().height(180.dp).then(ring(Section.HERO)))
@@ -138,7 +139,6 @@ private fun Home(site: SiteModel, photos: List<Photo>, look: Look, ring: (Sectio
             site.about.text.split(Regex("\\n\\s*\\n")).filter { it.isNotBlank() }.forEach {
                 Text(it.trim(), style = Type.BodyMedium.copy(lineHeight = 21.sp), color = InkMuted)
             }
-            site.about.photo?.let { photos.getOrNull(it) }?.let { PhotoBox(it, Modifier.fillMaxWidth().height(160.dp)) }
         }
         site.special?.let { special ->
             Column(
@@ -150,6 +150,24 @@ private fun Home(site: SiteModel, photos: List<Photo>, look: Look, ring: (Sectio
             }
         }
         if (site.menu.isNotEmpty()) SiteButton("See the menu", look) { onPage(PageKey.MENU) }
+        Visit(site, look, ring)
+    }
+}
+
+@Composable
+private fun Showroom(site: SiteModel, photos: List<Photo>, ring: (Section) -> Modifier) {
+    PageColumn(gap = 16) {
+        Text("Showroom", style = PageTitle, color = Ink)
+        val photo = site.showroom.photo?.let { photos.getOrNull(it) }
+        if (photo == null && site.showroom.text.isBlank()) {
+            Text("No showroom yet. Snap your products or the inside of your shop and it'll appear here.", style = Type.BodyMedium.copy(lineHeight = 21.sp), color = InkMuted)
+        }
+        Column(ring(Section.SHOWROOM), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            photo?.let { PhotoBox(it, Modifier.fillMaxWidth().height(220.dp)) }
+            site.showroom.text.split(Regex("\\n\\s*\\n")).filter { it.isNotBlank() }.forEach {
+                Text(it.trim(), style = Type.BodyMedium.copy(lineHeight = 21.sp), color = InkMuted)
+            }
+        }
     }
 }
 
@@ -217,11 +235,11 @@ private fun Events(site: SiteModel, look: Look, ring: (Section) -> Modifier) {
     }
 }
 
+/** Address, hours and contact, at the bottom of the Storefront page. */
 @Composable
 private fun Visit(site: SiteModel, look: Look, ring: (Section) -> Modifier) {
     val context = LocalContext.current
-    PageColumn(gap = 16) {
-        Text("Visit", style = PageTitle, color = Ink)
+    Column(Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         site.contact.address?.let {
             Text(it, style = TextStyle(fontFamily = Newsreader, fontSize = 20.sp, lineHeight = 26.sp), color = Ink, modifier = ring(Section.CONTACT))
         }

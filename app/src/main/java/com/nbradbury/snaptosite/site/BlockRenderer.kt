@@ -6,29 +6,42 @@ import java.net.URLEncoder
 /** A photo that has been uploaded to the site's media library. */
 data class UploadedMedia(val id: Long, val url: String)
 
+/**
+ * The site's pages, matching the kinds of photo the owner takes. Stored by name in the published
+ * state, so HOME (the front page, titled Storefront) and VISIT keep their old names.
+ */
 enum class PageKey(val title: String, val slug: String) {
-    HOME("Home", "home"),
+    HOME("Storefront", "storefront"),
     MENU("Menu", "menu"),
+    SHOWROOM("Showroom", "showroom"),
     EVENTS("Events", "events"),
+
+    /** No longer published; its hours and contact details are on the Storefront page now. */
     VISIT("Visit", "visit"),
+    ;
+
+    companion object {
+        /** Pages shown in the app's preview, in the same order as the photo pills. */
+        val SHOWN = listOf(HOME, SHOWROOM, MENU, EVENTS)
+    }
 }
 
 data class RenderedPage(val key: PageKey, val content: String)
 
 /**
  * Turns a [SiteModel] into core-block markup. Each section is wrapped in a group with a stable
- * `snap-*` class so the site's structure is recognizable in the editor. Menu and Events pages are
- * only published when there's something to put on them.
+ * `snap-*` class so the site's structure is recognizable in the editor. Menu, Showroom and Events
+ * pages are only published when there's something to put on them.
  */
 class BlockRenderer(
     private val colors: SiteColors,
     private val media: Map<Int, UploadedMedia>,
 ) {
-    /** Pages [site] publishes, in the order they should be written (Home last, so it can link to the rest). */
+    /** Pages [site] publishes, in the order they should be written (Storefront last, so it can link to the rest). */
     fun pageKeys(site: SiteModel) = buildList {
         if (site.menu.isNotEmpty()) add(PageKey.MENU)
+        if (hasShowroom(site)) add(PageKey.SHOWROOM)
         if (site.events.isNotEmpty()) add(PageKey.EVENTS)
-        add(PageKey.VISIT)
         add(PageKey.HOME)
     }
 
@@ -37,8 +50,9 @@ class BlockRenderer(
         val body = when (key) {
             PageKey.HOME -> home(site, links)
             PageKey.MENU -> menu(site)
+            PageKey.SHOWROOM -> showroom(site)
             PageKey.EVENTS -> events(site)
-            PageKey.VISIT -> visit(site)
+            PageKey.VISIT -> ""
         }
         return site.banner?.takeIf { it.isNotBlank() }?.let { banner(it) }.orEmpty() + body
     }
@@ -48,12 +62,16 @@ class BlockRenderer(
 
     private fun home(site: SiteModel, links: Map<PageKey, String>) = buildString {
         append(image(site.hero.photo))
-        append(section("snap-intro", heading(site.hero.heading) + paragraphs(site.about.text) + image(site.about.photo)))
+        append(section("snap-intro", heading(site.hero.heading) + paragraphs(site.about.text)))
         site.special?.let { special ->
             append(card("snap-special", paragraph("<strong>${esc(special.label.uppercase())}</strong>") + paragraph(esc(special.text))))
         }
         links[PageKey.MENU]?.let { append(button("See the menu", it)) }
+        append(visit(site))
     }
+
+    private fun showroom(site: SiteModel) =
+        image(site.showroom.photo) + section("snap-showroom", paragraphs(site.showroom.text))
 
     private fun banner(text: String): String {
         val attrs = """{"className":"snap-banner","style":{"color":{"background":"${colors.accent}","text":"#ffffff"}},"layout":{"type":"constrained"}}"""
@@ -157,6 +175,8 @@ class BlockRenderer(
             "\n<!-- /wp:image -->\n\n"
 
     companion object {
+        fun hasShowroom(site: SiteModel) = site.showroom.photo != null || site.showroom.text.isNotBlank()
+
         fun esc(text: String) = text
             .replace("&", "&amp;")
             .replace("<", "&lt;")

@@ -55,7 +55,7 @@ class Publisher(private val wp: WpSite, private val photos: List<Photo>) {
     private fun referencedPhotos(site: SiteModel): Set<Int> = buildSet {
         SiteLook.logoIndex(site, photos)?.let(::add)
         site.hero.photo?.let(::add)
-        site.about.photo?.let(::add)
+        site.showroom.photo?.let(::add)
         site.events.forEach { event -> event.photo?.let(::add) }
     }
 }
@@ -68,14 +68,15 @@ object SiteLook {
         .associate { it.index to it.value }
 
     /**
-     * Puts the owner's latest storefront photo at the top of Home, their showroom photo in the
-     * intro, and their logo in the header.
+     * Puts the owner's latest storefront photo on the Storefront page, their showroom photo on the
+     * Showroom page, and their logo in the header.
      */
     fun withTaggedPhotos(site: SiteModel, photos: List<Photo>): SiteModel {
         fun latest(kind: PhotoKind) = photos.indexOfLast { it.kind == kind }.takeIf { it >= 0 }
         return site.copy(
             hero = site.hero.copy(photo = latest(PhotoKind.STOREFRONT)),
-            about = site.about.copy(photo = latest(PhotoKind.SHOWROOM)),
+            about = site.about.copy(photo = null),
+            showroom = site.showroom.copy(photo = latest(PhotoKind.SHOWROOM)),
             logoPhoto = latest(PhotoKind.LOGO),
         )
     }

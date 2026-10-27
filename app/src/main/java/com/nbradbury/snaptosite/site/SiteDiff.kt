@@ -14,9 +14,10 @@ enum class Section(val page: PageKey) {
     ABOUT(PageKey.HOME),
     SPECIAL(PageKey.HOME),
     MENU(PageKey.MENU),
+    SHOWROOM(PageKey.SHOWROOM),
     EVENTS(PageKey.EVENTS),
-    HOURS(PageKey.VISIT),
-    CONTACT(PageKey.VISIT),
+    HOURS(PageKey.HOME),
+    CONTACT(PageKey.HOME),
     ;
 
     /** Returns [into] with this section replaced by its value in [from]. */
@@ -32,6 +33,7 @@ enum class Section(val page: PageKey) {
         ABOUT -> into.copy(about = from.about)
         SPECIAL -> into.copy(special = from.special)
         MENU -> into.copy(menu = from.menu)
+        SHOWROOM -> into.copy(showroom = from.showroom)
         EVENTS -> into.copy(events = from.events)
         HOURS -> into.copy(hours = from.hours)
         CONTACT -> into.copy(contact = from.contact)
@@ -53,12 +55,13 @@ object SiteDiff {
         field(Section.NAME, "Name", before.businessName, after.businessName)
         field(Section.NAME, "Tagline", before.tagline, after.tagline)
         field(Section.NAME, "Logo", photo(before.logoPhoto), photo(after.logoPhoto))
-        field(Section.HERO, "Home · headline", before.hero.heading, after.hero.heading)
-        field(Section.HERO, "Home · photo", photo(before.hero.photo), photo(after.hero.photo))
-        field(Section.ABOUT, "Home · intro", before.about.text, after.about.text)
-        field(Section.ABOUT, "Home · intro photo", photo(before.about.photo), photo(after.about.photo))
+        field(Section.HERO, "Storefront · headline", before.hero.heading, after.hero.heading)
+        field(Section.HERO, "Storefront · photo", photo(before.hero.photo), photo(after.hero.photo))
+        field(Section.ABOUT, "Storefront · intro", before.about.text, after.about.text)
+        field(Section.SHOWROOM, "Showroom", before.showroom.text.ifBlank { null }, after.showroom.text.ifBlank { null })
+        field(Section.SHOWROOM, "Showroom · photo", photo(before.showroom.photo), photo(after.showroom.photo))
         val specialLabel = after.special?.label ?: before.special?.label ?: "special"
-        field(Section.SPECIAL, "Home · $specialLabel", before.special?.text ?: "None", after.special?.text ?: "None")
+        field(Section.SPECIAL, "Storefront · $specialLabel", before.special?.text ?: "None", after.special?.text ?: "None")
 
         keyed(
             before.hours.associateBy { it.day }, after.hours.associateBy { it.day },
@@ -92,9 +95,9 @@ object SiteDiff {
             }
         }
 
-        field(Section.CONTACT, "Visit · address", before.contact.address, after.contact.address)
-        field(Section.CONTACT, "Visit · phone", before.contact.phone, after.contact.phone)
-        field(Section.CONTACT, "Visit · email", before.contact.email, after.contact.email)
+        field(Section.CONTACT, "Storefront · address", before.contact.address, after.contact.address)
+        field(Section.CONTACT, "Storefront · phone", before.contact.phone, after.contact.phone)
+        field(Section.CONTACT, "Storefront · email", before.contact.email, after.contact.email)
     }
 
     fun sections(changes: List<FieldChange>): Set<Section> = changes.mapTo(LinkedHashSet()) { it.section }

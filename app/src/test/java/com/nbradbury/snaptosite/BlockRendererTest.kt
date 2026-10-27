@@ -2,6 +2,7 @@ package com.nbradbury.snaptosite
 
 import com.nbradbury.snaptosite.ai.DayHours
 import com.nbradbury.snaptosite.ai.MenuItem
+import com.nbradbury.snaptosite.ai.Showroom
 import com.nbradbury.snaptosite.site.BlockRenderer
 import com.nbradbury.snaptosite.site.PageKey
 import com.nbradbury.snaptosite.site.SiteColors
@@ -16,10 +17,19 @@ class BlockRendererTest {
     private val renderer = BlockRenderer(SiteColors("#2e4b3c", "#b9603a", "#f5efe3"), media)
 
     @Test
-    fun `publishes Menu and Events only when they have content, Home last`() {
-        assertEquals(listOf(PageKey.MENU, PageKey.EVENTS, PageKey.VISIT, PageKey.HOME), renderer.pageKeys(cafe))
+    fun `publishes Menu, Showroom and Events only when they have content, Storefront last`() {
+        assertEquals(listOf(PageKey.MENU, PageKey.EVENTS, PageKey.HOME), renderer.pageKeys(cafe))
+        val withShowroom = cafe.copy(showroom = Showroom("Frames from local makers.", photo = 1))
+        assertEquals(listOf(PageKey.MENU, PageKey.SHOWROOM, PageKey.EVENTS, PageKey.HOME), renderer.pageKeys(withShowroom))
         val bare = cafe.copy(menu = emptyList(), events = emptyList())
-        assertEquals(listOf(PageKey.VISIT, PageKey.HOME), renderer.pageKeys(bare))
+        assertEquals(listOf(PageKey.HOME), renderer.pageKeys(bare))
+    }
+
+    @Test
+    fun `showroom page has its photo and text`() {
+        val page = renderer.render(cafe.copy(showroom = Showroom("Frames from local makers.", photo = 2)), PageKey.SHOWROOM)
+        assertTrue(page.contains("wp-image-12"))
+        assertTrue(page.contains("<p>Frames from local makers.</p>"))
     }
 
     @Test
@@ -52,9 +62,9 @@ class BlockRendererTest {
     }
 
     @Test
-    fun `visit page has hours, highlighted exceptions and directions`() {
+    fun `storefront page has hours, highlighted exceptions and directions`() {
         val site = cafe.copy(hours = cafe.hours + DayHours("Thursday, Nov 26", "Closed · Thanksgiving", true))
-        val visit = renderer.render(site, PageKey.VISIT)
+        val visit = renderer.render(site, PageKey.HOME)
         assertTrue(visit.contains("<strong>Tuesday – Sunday</strong>: 7am – 3pm"))
         assertTrue(visit.contains("""color:#b9603a" class="has-inline-color"><strong>Thursday, Nov 26</strong>"""))
         assertTrue(visit.contains("""<a href="tel:5551234567">"""))

@@ -14,12 +14,14 @@ enum class PhotoKind(val label: String) {
     MENU("menu"),
     SHOWROOM("showroom"),
     FLYER("event flyer or poster"),
+
+    /** No longer offered, but logos saved by earlier versions still load and are still used. */
     LOGO("logo"),
     ;
 
     companion object {
-        /** The kinds the capture screen offers, in pill order. */
-        val OFFERED = listOf(STOREFRONT, MENU, SHOWROOM, FLYER, LOGO)
+        /** The kinds the capture screen offers, in the same order as the site's pages. */
+        val OFFERED = listOf(STOREFRONT, SHOWROOM, MENU, FLYER)
     }
 }
 

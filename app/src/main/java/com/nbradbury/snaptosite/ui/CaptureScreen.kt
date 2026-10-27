@@ -99,10 +99,10 @@ private val PhotoKind.hint
 /** What the app will do with the photo, shown once a tile has one. */
 private val PhotoKind.use
     get() = when (this) {
-        PhotoKind.STOREFRONT -> "Your Home photo"
-        PhotoKind.MENU -> "We'll read it when we build"
-        PhotoKind.SHOWROOM -> "Shown on your Home page"
-        PhotoKind.FLYER -> "We'll turn it into an event"
+        PhotoKind.STOREFRONT -> "Your Storefront page"
+        PhotoKind.MENU -> "We'll read it for your Menu page"
+        PhotoKind.SHOWROOM -> "Your Showroom page"
+        PhotoKind.FLYER -> "We'll read it for your Events page"
         PhotoKind.LOGO -> "Your site's colors and header"
     }
 
@@ -131,8 +131,6 @@ fun CaptureScreen(state: UiState, viewModel: SnapViewModel) {
 private fun Picker(state: UiState, viewModel: SnapViewModel, choose: (PhotoKind) -> Unit) {
     val byKind = state.photos.filter { it.kind in PhotoKind.OFFERED }.associateBy { it.kind }
     val kind = state.captureMode.takeIf { it in PhotoKind.OFFERED } ?: PhotoKind.OFFERED.first()
-    // Site colors come from the logo, or the storefront when there's no logo.
-    val colorSource = if (PhotoKind.LOGO in byKind) PhotoKind.LOGO else PhotoKind.STOREFRONT
     Column(Modifier.fillMaxSize().background(Snap.CameraBackground)) {
         Row(
             Modifier.fillMaxWidth().heightIn(min = 64.dp).padding(start = 4.dp, end = 8.dp, top = 4.dp, bottom = 4.dp),
@@ -163,7 +161,8 @@ private fun Picker(state: UiState, viewModel: SnapViewModel, choose: (PhotoKind)
         Tile(
             kind = kind,
             photo = byKind[kind],
-            swatches = state.colors.swatches.takeIf { kind == colorSource },
+            // Site colors come from the storefront photo (or a logo saved by an earlier version).
+            swatches = state.colors.swatches.takeIf { kind == PhotoKind.STOREFRONT },
             onTake = { viewModel.takePhoto(kind) },
             onChoose = { choose(kind) },
             modifier = Modifier.weight(1f).fillMaxWidth().padding(start = 12.dp, end = 12.dp, bottom = 16.dp),

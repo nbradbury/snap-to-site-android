@@ -19,6 +19,8 @@ data class SiteModel(
     val banner: String?,
     val hero: Hero,
     val about: About,
+    // Defaulted so drafts saved before the Showroom page still load.
+    val showroom: Showroom = Showroom("", null),
     @JsonPropertyDescription("A daily special or similar changing item, if the owner mentions one")
     val special: Special?,
     @JsonPropertyDescription("Menu or price list; empty if the business doesn't have one")
@@ -38,6 +40,12 @@ data class Hero(
 
 data class About(
     @JsonPropertyDescription("A short intro paragraph under the headline: where the business is and what makes it worth a visit")
+    val text: String,
+    val photo: Int?,
+)
+
+data class Showroom(
+    @JsonPropertyDescription("One short paragraph about what customers find inside: products, brands, displays. Empty if the owner didn't say")
     val text: String,
     val photo: Int?,
 )
@@ -117,8 +125,10 @@ data class SitePatch(
     @JsonPropertyDescription("The complete new events list if any of it changes, else null")
     val events: List<Event>?,
     val contact: Contact?,
+    val showroom: Showroom? = null,
 ) {
     fun applyTo(site: SiteModel) = site.copy(
+        showroom = showroom ?: site.showroom,
         banner = if (banner == null) site.banner else banner.ifBlank { null },
         businessName = businessName ?: site.businessName,
         tagline = tagline ?: site.tagline,
