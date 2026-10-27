@@ -330,7 +330,11 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
         _state.update { it.copy(facts = updated, dialog = null) }
     }
 
-    fun goCapture() = _state.update { it.copy(screen = Screen.CAPTURE, captureForEdit = false, shooting = false, detect = null) }
+    fun goCapture() {
+        // Picks up any edits to the description; unchanged text doesn't call Claude again.
+        _state.value.transcript.takeIf { it.isNotBlank() }?.let { refreshFacts(it, if (useNano()) Where.DEVICE else Where.CLOUD) }
+        _state.update { it.copy(screen = Screen.CAPTURE, captureForEdit = false, shooting = false, detect = null) }
+    }
 
     // Capture
 
