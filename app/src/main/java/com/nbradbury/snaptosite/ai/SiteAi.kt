@@ -27,7 +27,10 @@ import java.time.format.DateTimeFormatter
 import java.util.Base64
 import kotlin.jvm.optionals.getOrNull
 
-class SiteAiException(message: String) : Exception(message)
+open class SiteAiException(message: String) : Exception(message)
+
+/** The API rejected the key, e.g. because it was deleted; the owner needs to enter a new one. */
+class InvalidApiKeyException : SiteAiException("Your Claude API key isn't valid anymore.")
 
 /** Turns the owner's description and photos into a [SiteModel], and applies spoken edits to it. */
 class SiteAi(apiKey: String, private val assets: AssetManager) {
@@ -96,7 +99,7 @@ class SiteAi(apiKey: String, private val assets: AssetManager) {
         val message = try {
             client.beta().messages().create(params)
         } catch (e: UnauthorizedException) {
-            throw SiteAiException("Claude didn't accept the API key. Check it in Settings.")
+            throw InvalidApiKeyException()
         } catch (e: PermissionDeniedException) {
             throw SiteAiException("This API key doesn't have access to Claude Opus 5.5.")
         } catch (e: RateLimitException) {

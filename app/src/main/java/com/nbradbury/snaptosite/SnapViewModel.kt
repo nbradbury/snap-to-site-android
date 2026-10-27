@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.nbradbury.snaptosite.ai.HeardFacts
+import com.nbradbury.snaptosite.ai.InvalidApiKeyException
 import com.nbradbury.snaptosite.ai.OnDeviceFacts
 import com.nbradbury.snaptosite.ai.SiteAi
 import com.nbradbury.snaptosite.ai.SiteEdit
@@ -66,7 +67,8 @@ data class VoiceSheet(
 )
 
 sealed interface Dialog {
-    data class ApiKey(val thenDescribe: Boolean) : Dialog
+    /** [invalid] when the saved key was rejected, so the dialog can say why it's asking again. */
+    data class ApiKey(val thenDescribe: Boolean, val invalid: Boolean = false) : Dialog
     data object Publish : Dialog
     data class Connect(val publishAfter: Boolean) : Dialog
     data object Publishing : Dialog
@@ -178,7 +180,21 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
 
     fun dismissError() = _state.update { it.copy(error = null) }
 
-    fun dismissDialog() = _state.update { it.copy(dialog = null) }
+    fun dismissDialog() {
+        retryAfterKey = null
+        _state.update { it.copy(dialog = null) }
+    }
+
+    /** What to run again once the owner replaces a rejected API key. */
+    private var retryAfterKey: (() -> Unit)? = null
+
+    /** Asks for a new key if [e] says the current one was rejected, then reruns [retry]. */
+    private fun askForNewKey(e: Exception, retry: () -> Unit): Boolean {
+        if (e !is InvalidApiKeyException) return false
+        retryAfterKey = retry
+        _state.update { it.copy(dialog = Dialog.ApiKey(thenDescribe = false, invalid = true)) }
+        return true
+    }
 
     // Welcome
 
@@ -202,6 +218,7 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
                 screen = if (thenDescribe) Screen.DESCRIBE else it.screen,
             )
         }
+        retryAfterKey?.also { retryAfterKey = null }?.invoke()
     }
 
     fun back() = _state.update {
@@ -270,7 +287,9 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
             val facts = try {
                 if (where == Where.DEVICE) nano.extract(text) else ai().extractFacts(text)
             } catch (e: Exception) {
-                null // The facts are a convenience; the build reads the transcript itself.
+                // The facts are a convenience; the build reads the transcript itself.
+                askForNewKey(e) { refreshFacts(text, where) }
+                null
             } ?: return@launch
             store.facts = facts
             _state.update { it.copy(facts = facts, factsFrom = where) }
@@ -428,6 +447,7 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
             } catch (e: Exception) {
                 ticker.cancel()
                 _state.update { it.copy(buildError = e.message ?: e.toString()) }
+                askForNewKey(e, ::startBuild)
             }
         }
     }
@@ -589,7 +609,11 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
                     apply(edit, changes)
                 }
             } catch (e: Exception) {
-                _state.update { it.copy(sheet = null, error = e.message ?: e.toString()) }
+                if (askForNewKey(e) { submitEdit(instruction, newPhotos) }) {
+                    _state.update { it.copy(sheet = null) }
+                } else {
+                    _state.update { it.copy(sheet = null, error = e.message ?: e.toString()) }
+                }
             }
         }
     }

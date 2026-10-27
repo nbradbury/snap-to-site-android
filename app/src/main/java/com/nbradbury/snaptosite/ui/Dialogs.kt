@@ -40,7 +40,7 @@ import com.nbradbury.snaptosite.UiState
 @Composable
 fun SnapDialogs(state: UiState, viewModel: SnapViewModel) {
     when (val dialog = state.dialog) {
-        is SnapDialog.ApiKey -> ApiKeyDialog(viewModel)
+        is SnapDialog.ApiKey -> ApiKeyDialog(dialog.invalid, viewModel)
         SnapDialog.Publish -> PublishDialog(state, viewModel)
         is SnapDialog.Connect -> ConnectDialog(dialog.publishAfter, state.busy, viewModel)
         SnapDialog.Publishing -> DialogCard({}, dismissible = false) {
@@ -84,12 +84,16 @@ private fun Title(icon: String, text: String) {
 }
 
 @Composable
-private fun ApiKeyDialog(viewModel: SnapViewModel) {
+private fun ApiKeyDialog(invalid: Boolean, viewModel: SnapViewModel) {
     var key by remember { mutableStateOf("") }
     DialogCard(viewModel::dismissDialog) {
-        Title("key", "Add your Claude API key")
+        Title("key", if (invalid) "Enter a new Claude API key" else "Add your Claude API key")
         Text(
-            "Claude reads what you say and the photos you take, and writes your pages. The key stays on this phone.",
+            if (invalid) {
+                "Claude no longer accepts the saved key. It may have been deleted. Paste a new one and we'll pick up where you left off."
+            } else {
+                "Claude reads what you say and the photos you take, and writes your pages. The key stays on this phone."
+            },
             style = Type.BodyMedium,
             color = Snap.OnSurfaceVariant,
         )
