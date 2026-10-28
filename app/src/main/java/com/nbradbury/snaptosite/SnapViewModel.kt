@@ -272,6 +272,7 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
         setTranscript("")
         _state.update { it.copy(facts = null, factsFrom = null) }
         store.facts = null
+        factsFor = null
         toggleTalk()
     }
 
@@ -294,22 +295,27 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
         refreshFacts(text, if (useNano()) Where.DEVICE else Where.CLOUD)
     }
 
-    /** The text and source of the last facts extracted, so stopping again without changes costs nothing. */
+    /**
+     * The text and source of the facts extracted or being extracted, so stopping again without
+     * changes, or moving on while a request is in flight, costs nothing.
+     */
     private var factsFor: Pair<String, Where>? = null
 
     private fun refreshFacts(text: String, where: Where) {
-        if (factsFor == text to where && _state.value.facts != null) return
+        val key = text to where
+        if (factsFor == key) return
+        factsFor = key
         factsJob?.cancel()
         factsJob = viewModelScope.launch(Dispatchers.IO) {
             val facts = try {
                 if (where == Where.DEVICE) nano.extract(text) else ai().extractFacts(text)
             } catch (e: Exception) {
+                if (factsFor == key) factsFor = null
                 // The facts are a convenience; the build reads the transcript itself.
                 askForNewKey(e) { refreshFacts(text, where) }
                 null
             } ?: return@launch
             store.facts = facts
-            factsFor = text to where
             _state.update { it.copy(facts = facts, factsFrom = where) }
         }
     }
@@ -332,7 +338,7 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
 
     fun goCapture() {
         // Picks up any edits to the description; unchanged text doesn't call Claude again.
-        _state.value.transcript.takeIf { it.isNotBlank() }?.let { refreshFacts(it, if (useNano()) Where.DEVICE else Where.CLOUD) }
+        doneTalking()
         _state.update { it.copy(screen = Screen.CAPTURE, captureForEdit = false, shooting = false, detect = null) }
     }
 
@@ -763,6 +769,7 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
         store.published = null
         store.description = ""
         store.facts = null
+        factsFor = null
         store.activity = emptyList()
         photoStore.clear()
         _state.update {
