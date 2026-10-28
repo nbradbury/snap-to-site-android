@@ -2,7 +2,7 @@
 
 A camera-first WordPress site builder. Describe your business out loud, photograph your storefront, products, menu board, flyers and logo, and Claude turns it into a working site. After launch you keep it current the same way: say "we're closed Thursday for the holiday" and the hours and a banner update. Changes apply with Undo and an Activity log, or wait for your OK if you turn on "Review changes before applying".
 
-<img src="docs/welcome.png" alt="Snap-to-Site welcome screen" width="300">
+<img width="3333" height="1373" alt="collage" src="https://github.com/user-attachments/assets/35541ae3-0073-4822-8004-9306e1a031a4" />
 
 - **Claude** (`claude-opus-5-5` via the Anthropic Java SDK) reads the description and photos into a structured `SiteModel`: business info, menu, hours, events, contact, and which photos go where. Edits are model-to-model transforms with a one-line summary.
 - **wordpress-rs** handles everything WordPress: API discovery, the application-password login flow, media uploads, pages and site settings.
