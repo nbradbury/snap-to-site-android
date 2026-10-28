@@ -273,6 +273,7 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
         _state.update { it.copy(facts = null, factsFrom = null) }
         store.facts = null
         factsFor = null
+        factsJob?.cancel()
         toggleTalk()
     }
 
@@ -284,6 +285,12 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
     fun setTranscript(text: String) {
         store.description = text
         _state.update { it.copy(transcript = text) }
+    }
+
+    /** Edits from the text field. Clearing a spoken description switches to typing, so the field stays put. */
+    fun editTranscript(text: String) {
+        setTranscript(text)
+        if (text.isBlank()) _state.update { it.copy(typing = true) }
     }
 
     /** Called when the owner stops talking or finishes typing. */
@@ -306,15 +313,22 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
         if (factsFor == key) return
         factsFor = key
         factsJob?.cancel()
-        factsJob = viewModelScope.launch(Dispatchers.IO) {
+        // On Main so only one thread touches factsFor. Cancelling can't stop a blocking Claude call,
+        // so a superseded request still returns and is dropped by the check below.
+        factsJob = viewModelScope.launch {
             val facts = try {
-                if (where == Where.DEVICE) nano.extract(text) else ai().extractFacts(text)
+                withContext(Dispatchers.IO) { if (where == Where.DEVICE) nano.extract(text) else ai().extractFacts(text) }
             } catch (e: Exception) {
-                if (factsFor == key) factsFor = null
                 // The facts are a convenience; the build reads the transcript itself.
                 askForNewKey(e) { refreshFacts(text, where) }
                 null
-            } ?: return@launch
+            }
+            // Superseded, or reset by Say it again or Start over, while extracting.
+            if (factsFor != key) return@launch
+            if (facts == null) {
+                factsFor = null // so Done or Next tries again
+                return@launch
+            }
             store.facts = facts
             _state.update { it.copy(facts = facts, factsFrom = where) }
         }
@@ -770,6 +784,7 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
         store.description = ""
         store.facts = null
         factsFor = null
+        factsJob?.cancel()
         store.activity = emptyList()
         photoStore.clear()
         _state.update {
