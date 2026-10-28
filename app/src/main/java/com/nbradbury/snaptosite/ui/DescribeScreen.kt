@@ -55,7 +55,7 @@ fun DescribeScreen(state: UiState, viewModel: SnapViewModel) {
                 )
             }
             // Typed, or spoken and finished: either way the owner can correct it.
-            if (state.typing || (!state.talking && state.transcript.isNotEmpty())) {
+            if (state.typing || done) {
                 OutlinedTextField(
                     value = state.transcript,
                     onValueChange = viewModel::setTranscript,
@@ -66,10 +66,10 @@ fun DescribeScreen(state: UiState, viewModel: SnapViewModel) {
                 )
             } else {
                 Box(Modifier.heightIn(min = 150.dp)) {
-                    if (state.transcript.isEmpty() && !state.talking) {
+                    if (!state.talking) {
                         Text("Tap the mic and start talking…", style = Type.Title.copy(lineHeight = Type.Title.fontSize * 1.36), color = Snap.Outline)
                     } else {
-                        Transcript(state.transcript, state.talking, Type.Title.copy(lineHeight = Type.Title.fontSize * 1.36), Snap.OnSurface)
+                        Transcript(state.transcript, listening = true, Type.Title.copy(lineHeight = Type.Title.fontSize * 1.36), Snap.OnSurface)
                     }
                 }
             }
