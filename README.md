@@ -1,6 +1,6 @@
 # Snap-to-Site
 
-A camera-first WordPress site builder. Describe your business out loud, photograph your storefront, products, menu board, flyers and logo, and watch it turned into a working site. After launch you keep it current the same way: say "we're closed Thursday for the holiday" and the hours and a banner update. Changes apply with Undo and an Activity log, or wait for your OK if you turn on "Review changes before applying".
+A camera-first WordPress site builder. Describe your business out loud, photograph your storefront, products, menu board, flyers and logo, and watch them turned into a working site. After launch you keep it current the same way: say "we're closed Thursday for the holiday" and the hours and a banner update. Changes apply with Undo and an Activity log, or wait for your OK if you turn on "Review changes before applying".
 
 <img width="3333" height="1373" alt="collage" src="https://github.com/user-attachments/assets/35541ae3-0073-4822-8004-9306e1a031a4" />
 
