@@ -1,4 +1,4 @@
-<h1><img src="docs/icon.svg" alt="" width="48" align="center"> Snap-to-Site</h1>
+<h1><img src="docs/icon.svg" alt="" width="48" align="absmiddle"> Snap-to-Site</h1>
 
 A camera-first WordPress site builder. Describe your business out loud, photograph your storefront, products, menu board, flyers and logo, and watch them turned into a working site. After launch you keep it current the same way: say "we're closed Thursday for the holiday" and the hours and a banner update. Changes apply with Undo and an Activity log, or wait for your OK if you turn on "Review changes before applying".
 
