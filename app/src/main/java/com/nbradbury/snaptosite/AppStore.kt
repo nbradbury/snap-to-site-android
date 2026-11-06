@@ -11,8 +11,8 @@ import com.nbradbury.snaptosite.site.PublishedState
 import com.nbradbury.snaptosite.wp.Credentials
 
 /**
- * Persists keys, site credentials and the site itself in app-private storage. Backup is disabled
- * for the app so the credentials never leave the device.
+ * Persists keys, site credentials and the site itself in app-private storage. Backup and device transfer
+ * are disabled for the app so the credentials never leave the device.
  */
 class AppStore(context: Context) {
     private val prefs = context.getSharedPreferences("snap", Context.MODE_PRIVATE)

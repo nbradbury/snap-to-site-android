@@ -567,11 +567,12 @@ class SnapViewModel(app: Application) : AndroidViewModel(app) {
 
     fun onAuthCallback(uri: Uri) = work {
         val pending = store.pendingLogin ?: return@work
+        // Single use, so a stray callback after a declined or failed login is ignored.
+        store.pendingLogin = null
         val credentials = AppPasswordAuth.credentials(uri.toString(), pending.siteUrl, pending.apiRoot)
         // Also verifies the credentials before they're saved.
         val blockTheme = WpSite(credentials).hasBlockTheme()
         store.credentials = credentials
-        store.pendingLogin = null
         // A different site means the pages need to be created there from scratch.
         store.published = null
         _state.update {

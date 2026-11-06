@@ -160,7 +160,7 @@ class BlockRenderer(
 
     private fun imageBlock(m: UploadedMedia) =
         "<!-- wp:image {\"id\":${m.id},\"sizeSlug\":\"large\",\"linkDestination\":\"none\"} -->\n" +
-            """<figure class="wp-block-image size-large"><img src="${m.url}" alt="" class="wp-image-${m.id}"/></figure>""" +
+            """<figure class="wp-block-image size-large"><img src="${esc(m.url)}" alt="" class="wp-image-${m.id}"/></figure>""" +
             "\n<!-- /wp:image -->\n\n"
 
     companion object {
